@@ -84,6 +84,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.utils.RadareOffsetFinder
+import androidx.core.content.edit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -528,7 +529,7 @@ fun Onboarding(navController: NavController, activityContext: Context) {
                         onClick = {
                             showSkipDialog = false
                             RadareOffsetFinder.clearHookOffsets()
-                            sharedPreferences.edit().putBoolean("skip_setup", true).apply()
+                            sharedPreferences.edit { putBoolean("skip_setup", true) }
                             navController.navigate("settings") {
                                 popUpTo("onboarding") { inclusive = true }
                             }
@@ -665,6 +666,3 @@ fun OnboardingPreview() {
     Onboarding(navController = NavController(LocalContext.current), activityContext = LocalContext.current)
 }
 
-private suspend fun delay(timeMillis: Long) {
-    kotlinx.coroutines.delay(timeMillis)
-}

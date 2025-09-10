@@ -69,6 +69,7 @@ import androidx.navigation.NavController
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.services.ServiceManager
 import kotlin.io.encoding.ExperimentalEncodingApi
+import androidx.core.content.edit
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -153,7 +154,7 @@ fun RenameScreen(navController: NavController) {
                     value = name.value,
                     onValueChange = {
                         name.value = it
-                        sharedPreferences.edit().putString("name", it.text).apply()
+                        sharedPreferences.edit {putString("name", it.text)}
                         ServiceManager.getService()?.setName(it.text)
                     },
                     textStyle = TextStyle(
@@ -175,7 +176,7 @@ fun RenameScreen(navController: NavController) {
                             IconButton(
                                 onClick = {
                                     name.value = TextFieldValue("")
-                                    sharedPreferences.edit().putString("name", "").apply()
+                                    sharedPreferences.edit { putString("name", "") }
                                     ServiceManager.getService()?.setName("")
                                 }
                             ) {

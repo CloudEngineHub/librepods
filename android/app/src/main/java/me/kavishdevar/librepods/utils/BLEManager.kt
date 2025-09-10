@@ -30,7 +30,6 @@ import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import me.kavishdevar.librepods.services.ServiceManager
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 import kotlin.io.encoding.Base64
@@ -223,12 +222,13 @@ class BLEManager(private val context: Context) {
         }
     }
 
+    @SuppressLint("GetInstance")
     private fun decryptLastBytes(data: ByteArray, key: ByteArray): ByteArray? {
         return try {
             if (data.size < 16) {
                 return null
             }
-            
+
             val block = data.copyOfRange(data.size - 16, data.size)
             val cipher = Cipher.getInstance("AES/ECB/NoPadding")
             val secretKey = SecretKeySpec(key, "AES")
@@ -302,7 +302,7 @@ class BLEManager(private val context: Context) {
 
                         if (previousGlobalState != parsedStatus.lidOpen) {
                             listener.onLidStateChanged(parsedStatus.lidOpen)
-                            Log.d(TAG, "Lid state changed from ${previousGlobalState} to ${parsedStatus.lidOpen}")
+                            Log.d(TAG, "Lid state changed from $previousGlobalState to ${parsedStatus.lidOpen}")
                         }
                     }
 
@@ -348,13 +348,13 @@ class BLEManager(private val context: Context) {
         val isRightInEar = if (xorFactor) (status and 0x02) != 0 else (status and 0x08) != 0
 
         val isFlipped = !primaryLeft
-        
+
         val leftByteIndex = if (isFlipped) 2 else 1
         val rightByteIndex = if (isFlipped) 1 else 2
-        
+
         val (isLeftCharging, leftBattery) = formatBattery(decrypted[leftByteIndex].toInt() and 0xFF)
         val (isRightCharging, rightBattery) = formatBattery(decrypted[rightByteIndex].toInt() and 0xFF)
-        
+
         val rawCaseBatteryByte = decrypted[3].toInt() and 0xFF
         val (isCaseCharging, rawCaseBattery) = formatBattery(rawCaseBatteryByte)
 
@@ -442,10 +442,10 @@ class BLEManager(private val context: Context) {
         val isRightInEar = if (xorFactor) (status and 0x02) != 0 else (status and 0x08) != 0
 
         val isFlipped = !primaryLeft
-        
+
         val leftBatteryNibble = if (isFlipped) (podsBattery shr 4) and 0x0F else podsBattery and 0x0F
         val rightBatteryNibble = if (isFlipped) podsBattery and 0x0F else (podsBattery shr 4) and 0x0F
-        
+
         val caseBattery = flagsCase and 0x0F
         val flags = (flagsCase shr 4) and 0x0F
 

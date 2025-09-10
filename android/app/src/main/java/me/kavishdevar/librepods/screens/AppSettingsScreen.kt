@@ -57,8 +57,6 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -86,6 +84,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
 import androidx.navigation.NavController
 import dev.chrisbanes.haze.HazeEffectScope
 import dev.chrisbanes.haze.HazeState
@@ -186,11 +185,11 @@ fun AppSettingsScreen(navController: NavController) {
     var bleOnlyMode by remember {
         mutableStateOf(sharedPreferences.getBoolean("ble_only_mode", false))
     }
-    
+
     // Ensure the default value is properly set if not exists
     LaunchedEffect(Unit) {
         if (!sharedPreferences.contains("ble_only_mode")) {
-            sharedPreferences.edit().putBoolean("ble_only_mode", false).apply()
+            sharedPreferences.edit { putBoolean("ble_only_mode", false) }
         }
     }
 
@@ -312,7 +311,7 @@ fun AppSettingsScreen(navController: NavController) {
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
                             showPhoneBatteryInWidget = !showPhoneBatteryInWidget
-                            sharedPreferences.edit().putBoolean("show_phone_battery_in_widget", showPhoneBatteryInWidget).apply()
+                            sharedPreferences.edit { putBoolean("show_phone_battery_in_widget", showPhoneBatteryInWidget)}
                         },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -340,7 +339,7 @@ fun AppSettingsScreen(navController: NavController) {
                         checked = showPhoneBatteryInWidget,
                         onCheckedChange = {
                             showPhoneBatteryInWidget = it
-                            sharedPreferences.edit().putBoolean("show_phone_battery_in_widget", it).apply()
+                            sharedPreferences.edit { putBoolean("show_phone_battery_in_widget", it)}
                         }
                     )
                 }
@@ -376,7 +375,7 @@ fun AppSettingsScreen(navController: NavController) {
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
                             bleOnlyMode = !bleOnlyMode
-                            sharedPreferences.edit().putBoolean("ble_only_mode", bleOnlyMode).apply()
+                            sharedPreferences.edit { putBoolean("ble_only_mode", bleOnlyMode)}
                         },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -403,7 +402,7 @@ fun AppSettingsScreen(navController: NavController) {
                         checked = bleOnlyMode,
                         onCheckedChange = {
                             bleOnlyMode = it
-                            sharedPreferences.edit().putBoolean("ble_only_mode", it).apply()
+                            sharedPreferences.edit { putBoolean("ble_only_mode", it)}
                         }
                     )
                 }
@@ -440,12 +439,12 @@ fun AppSettingsScreen(navController: NavController) {
 
                 fun updateConversationalAwarenessPauseMusic(enabled: Boolean) {
                     conversationalAwarenessPauseMusicEnabled = enabled
-                    sharedPreferences.edit().putBoolean("conversational_awareness_pause_music", enabled).apply()
+                    sharedPreferences.edit { putBoolean("conversational_awareness_pause_music", enabled)}
                 }
 
                 fun updateRelativeConversationalAwarenessVolume(enabled: Boolean) {
                     relativeConversationalAwarenessVolumeEnabled = enabled
-                    sharedPreferences.edit().putBoolean("relative_conversational_awareness_volume", enabled).apply()
+                    sharedPreferences.edit { putBoolean("relative_conversational_awareness_volume", enabled)}
                 }
 
                 Row(
@@ -541,7 +540,7 @@ fun AppSettingsScreen(navController: NavController) {
                     value = sliderValue.floatValue,
                     onValueChange = {
                         sliderValue.floatValue = it
-                        sharedPreferences.edit().putInt("conversational_awareness_volume", it.toInt()).apply()
+                        sharedPreferences.edit { putInt("conversational_awareness_volume", it.toInt())}
                     },
                     valueRange = 10f..85f,
                     onValueChangeFinished = {
@@ -639,7 +638,7 @@ fun AppSettingsScreen(navController: NavController) {
             ) {
                 fun updateQsClickBehavior(enabled: Boolean) {
                     openDialogForControlling = enabled
-                    sharedPreferences.edit().putString("qs_click_behavior", if (enabled) "dialog" else "cycle").apply()
+                    sharedPreferences.edit { putString("qs_click_behavior", if (enabled) "dialog" else "cycle")}
                 }
 
                 Row(
@@ -708,7 +707,7 @@ fun AppSettingsScreen(navController: NavController) {
             ) {
                 fun updateDisconnectWhenNotWearing(enabled: Boolean) {
                     disconnectWhenNotWearing = enabled
-                    sharedPreferences.edit().putBoolean("disconnect_when_not_wearing", enabled).apply()
+                    sharedPreferences.edit { putBoolean("disconnect_when_not_wearing", enabled)}
                 }
 
                 Row(
@@ -789,7 +788,7 @@ fun AppSettingsScreen(navController: NavController) {
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
                             takeoverWhenDisconnected = !takeoverWhenDisconnected
-                            sharedPreferences.edit().putBoolean("takeover_when_disconnected", takeoverWhenDisconnected).apply()
+                            sharedPreferences.edit { putBoolean("takeover_when_disconnected", takeoverWhenDisconnected)}
                         },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -817,7 +816,7 @@ fun AppSettingsScreen(navController: NavController) {
                         checked = takeoverWhenDisconnected,
                         onCheckedChange = {
                             takeoverWhenDisconnected = it
-                            sharedPreferences.edit().putBoolean("takeover_when_disconnected", it).apply()
+                            sharedPreferences.edit { putBoolean("takeover_when_disconnected", it)}
                         }
                     )
                 }
@@ -830,7 +829,7 @@ fun AppSettingsScreen(navController: NavController) {
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
                             takeoverWhenIdle = !takeoverWhenIdle
-                            sharedPreferences.edit().putBoolean("takeover_when_idle", takeoverWhenIdle).apply()
+                            sharedPreferences.edit { putBoolean("takeover_when_idle", takeoverWhenIdle)}
                         },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -858,7 +857,7 @@ fun AppSettingsScreen(navController: NavController) {
                         checked = takeoverWhenIdle,
                         onCheckedChange = {
                             takeoverWhenIdle = it
-                            sharedPreferences.edit().putBoolean("takeover_when_idle", it).apply()
+                            sharedPreferences.edit { putBoolean("takeover_when_idle", it)}
                         }
                     )
                 }
@@ -871,7 +870,7 @@ fun AppSettingsScreen(navController: NavController) {
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
                             takeoverWhenMusic = !takeoverWhenMusic
-                            sharedPreferences.edit().putBoolean("takeover_when_music", takeoverWhenMusic).apply()
+                            sharedPreferences.edit { putBoolean("takeover_when_music", takeoverWhenMusic)}
                         },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -899,7 +898,7 @@ fun AppSettingsScreen(navController: NavController) {
                         checked = takeoverWhenMusic,
                         onCheckedChange = {
                             takeoverWhenMusic = it
-                            sharedPreferences.edit().putBoolean("takeover_when_music", it).apply()
+                            sharedPreferences.edit { putBoolean("takeover_when_music", it)}
                         }
                     )
                 }
@@ -912,7 +911,7 @@ fun AppSettingsScreen(navController: NavController) {
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
                             takeoverWhenCall = !takeoverWhenCall
-                            sharedPreferences.edit().putBoolean("takeover_when_call", takeoverWhenCall).apply()
+                            sharedPreferences.edit { putBoolean("takeover_when_call", takeoverWhenCall)}
                         },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -940,7 +939,7 @@ fun AppSettingsScreen(navController: NavController) {
                         checked = takeoverWhenCall,
                         onCheckedChange = {
                             takeoverWhenCall = it
-                            sharedPreferences.edit().putBoolean("takeover_when_call", it).apply()
+                            sharedPreferences.edit { putBoolean("takeover_when_call", it)}
                         }
                     )
                 }
@@ -963,7 +962,7 @@ fun AppSettingsScreen(navController: NavController) {
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
                             takeoverWhenRingingCall = !takeoverWhenRingingCall
-                            sharedPreferences.edit().putBoolean("takeover_when_ringing_call", takeoverWhenRingingCall).apply()
+                            sharedPreferences.edit { putBoolean("takeover_when_ringing_call", takeoverWhenRingingCall)}
                         },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -991,7 +990,7 @@ fun AppSettingsScreen(navController: NavController) {
                         checked = takeoverWhenRingingCall,
                         onCheckedChange = {
                             takeoverWhenRingingCall = it
-                            sharedPreferences.edit().putBoolean("takeover_when_ringing_call", it).apply()
+                            sharedPreferences.edit { putBoolean("takeover_when_ringing_call", it)}
                         }
                     )
                 }
@@ -1004,7 +1003,7 @@ fun AppSettingsScreen(navController: NavController) {
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
                             takeoverWhenMediaStart = !takeoverWhenMediaStart
-                            sharedPreferences.edit().putBoolean("takeover_when_media_start", takeoverWhenMediaStart).apply()
+                            sharedPreferences.edit { putBoolean("takeover_when_media_start", takeoverWhenMediaStart)}
                         },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -1032,7 +1031,7 @@ fun AppSettingsScreen(navController: NavController) {
                         checked = takeoverWhenMediaStart,
                         onCheckedChange = {
                             takeoverWhenMediaStart = it
-                            sharedPreferences.edit().putBoolean("takeover_when_media_start", it).apply()
+                            sharedPreferences.edit { putBoolean("takeover_when_media_start", it)}
                         }
                     )
                 }
@@ -1126,7 +1125,10 @@ fun AppSettingsScreen(navController: NavController) {
                             interactionSource = remember { MutableInteractionSource() }
                         ) {
                             useAlternateHeadTrackingPackets = !useAlternateHeadTrackingPackets
-                            sharedPreferences.edit().putBoolean("use_alternate_head_tracking_packets", useAlternateHeadTrackingPackets).apply()
+                            sharedPreferences.edit {
+                                putBoolean(
+                                    "use_alternate_head_tracking_packets",
+                                    useAlternateHeadTrackingPackets)}
                         },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -1154,7 +1156,7 @@ fun AppSettingsScreen(navController: NavController) {
                         checked = useAlternateHeadTrackingPackets,
                         onCheckedChange = {
                             useAlternateHeadTrackingPackets = it
-                            sharedPreferences.edit().putBoolean("use_alternate_head_tracking_packets", it).apply()
+                            sharedPreferences.edit { putBoolean("use_alternate_head_tracking_packets", it)}
                         }
                     )
                 }
@@ -1348,7 +1350,7 @@ fun AppSettingsScreen(navController: NavController) {
                                     }
 
                                     val base64Value = Base64.encode(hexBytes)
-                                    sharedPreferences.edit().putString(AACPManager.Companion.ProximityKeyType.IRK.name, base64Value).apply()
+                                    sharedPreferences.edit { putString(AACPManager.Companion.ProximityKeyType.IRK.name, base64Value)}
 
                                     Toast.makeText(context, "IRK has been set successfully", Toast.LENGTH_SHORT).show()
                                     showIrkDialog = false
@@ -1437,7 +1439,7 @@ fun AppSettingsScreen(navController: NavController) {
                                     }
 
                                     val base64Value = Base64.encode(hexBytes)
-                                    sharedPreferences.edit().putString(AACPManager.Companion.ProximityKeyType.ENC_KEY.name, base64Value).apply()
+                                    sharedPreferences.edit { putString(AACPManager.Companion.ProximityKeyType.ENC_KEY.name, base64Value)}
 
                                     Toast.makeText(context, "Encryption key has been set successfully", Toast.LENGTH_SHORT).show()
                                     showEncKeyDialog = false

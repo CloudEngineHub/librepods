@@ -66,6 +66,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
 import androidx.navigation.NavController
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.constants.StemAction
@@ -178,7 +179,7 @@ fun LongPress(navController: NavController, name: String) {
                     selected = longPressAction == StemAction.CYCLE_NOISE_CONTROL_MODES,
                     onClick = {
                         longPressAction = StemAction.CYCLE_NOISE_CONTROL_MODES
-                        sharedPreferences.edit().putString(prefKey, StemAction.CYCLE_NOISE_CONTROL_MODES.name).apply()
+                        sharedPreferences.edit { putString(prefKey, StemAction.CYCLE_NOISE_CONTROL_MODES.name)}
                     },
                     isFirst = true,
                     isLast = false
@@ -189,7 +190,7 @@ fun LongPress(navController: NavController, name: String) {
                     selected = longPressAction == StemAction.DIGITAL_ASSISTANT,
                     onClick = {
                         longPressAction = StemAction.DIGITAL_ASSISTANT
-                        sharedPreferences.edit().putString(prefKey, StemAction.DIGITAL_ASSISTANT.name).apply()
+                        sharedPreferences.edit { putString(prefKey, StemAction.DIGITAL_ASSISTANT.name)}
                     },
                     isFirst = false,
                     isLast = true
@@ -271,7 +272,9 @@ fun LongPressElement(name: String, enabled: Boolean = true, resourceId: Int, isF
         it.identifier == AACPManager.Companion.ControlCommandIdentifiers.LISTENING_MODE_CONFIGS
     }?.value?.takeIf { it.isNotEmpty() }?.get(0)
 
-    val savedByte = context.getSharedPreferences("settings", Context.MODE_PRIVATE).getInt("long_press_byte", 0b0101.toInt())
+    val savedByte = context.getSharedPreferences("settings", Context.MODE_PRIVATE).getInt("long_press_byte",
+        0b0101
+    )
     val byteValue = currentByteValue ?: (savedByte and 0xFF).toByte()
 
     val isChecked = (byteValue.toInt() and bit) != 0
@@ -331,8 +334,8 @@ fun LongPressElement(name: String, enabled: Boolean = true, resourceId: Int, isF
                 updatedByte
             )
 
-            context.getSharedPreferences("settings", Context.MODE_PRIVATE).edit()
-                .putInt("long_press_byte", newValue).apply()
+            context.getSharedPreferences("settings", Context.MODE_PRIVATE).edit {
+                putInt("long_press_byte", newValue)}
 
             checked.value = false
             Log.d("PressAndHoldSettingsScreen", "Updated: $name, enabled: false, byte: ${updatedByte.toInt() and 0xFF}, bits: ${Integer.toBinaryString(updatedByte.toInt() and 0xFF)}")
@@ -345,8 +348,9 @@ fun LongPressElement(name: String, enabled: Boolean = true, resourceId: Int, isF
                 updatedByte
             )
 
-            context.getSharedPreferences("settings", Context.MODE_PRIVATE).edit()
-                .putInt("long_press_byte", newValue).apply()
+            context.getSharedPreferences("settings", Context.MODE_PRIVATE).edit {
+                putInt("long_press_byte", newValue)
+            }
 
             checked.value = true
             Log.d("PressAndHoldSettingsScreen", "Updated: $name, enabled: true, byte: ${updatedByte.toInt() and 0xFF}, bits: ${newValue.toString(2)}")

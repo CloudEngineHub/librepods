@@ -99,7 +99,7 @@ fun BatteryView(service: AirPodsService, preview: Boolean = false) {
     batteryStatus.value = service.getBattery()
 
     if (preview) {
-        batteryStatus.value = listOf<Battery>(
+        batteryStatus.value = listOf(
             Battery(BatteryComponent.LEFT, 100, BatteryStatus.CHARGING),
             Battery(BatteryComponent.RIGHT, 50, BatteryStatus.NOT_CHARGING),
             Battery(BatteryComponent.CASE, 5, BatteryStatus.CHARGING)

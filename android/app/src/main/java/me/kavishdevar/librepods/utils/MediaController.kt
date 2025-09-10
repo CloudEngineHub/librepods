@@ -275,7 +275,7 @@ object MediaController {
             } else {
                 initialVolume!!
             }
-            smoothVolumeTransition(initialVolume!!, targetVolume.toInt())
+            smoothVolumeTransition(initialVolume!!, targetVolume)
             if (conversationalAwarenessPauseMusic) {
                 sendPause(force = true)
             }

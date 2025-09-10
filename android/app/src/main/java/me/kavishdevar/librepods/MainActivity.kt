@@ -97,6 +97,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -104,6 +106,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.MultiplePermissionsState
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import me.kavishdevar.librepods.constants.AirPodsNotifications
 import me.kavishdevar.librepods.screens.AirPodsSettingsScreen
 import me.kavishdevar.librepods.screens.AppSettingsScreen
@@ -123,6 +126,7 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 lateinit var serviceConnection: ServiceConnection
 lateinit var connectionStatusReceiver: BroadcastReceiver
 
+@ExperimentalHazeMaterialsApi
 @ExperimentalMaterial3Api
 class MainActivity : ComponentActivity() {
     companion object {
@@ -137,8 +141,10 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             LibrePodsTheme {
-                getSharedPreferences("settings", MODE_PRIVATE).edit().putLong("textColor",
-                    MaterialTheme.colorScheme.onSurface.toArgb().toLong()).apply()
+                getSharedPreferences("settings", MODE_PRIVATE).edit {
+                    putLong(
+                        "textColor",
+                        MaterialTheme.colorScheme.onSurface.toArgb().toLong())}
                 Main()
             }
         }
@@ -207,8 +213,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleAddMagicKeys(uri: Uri) {
-        val context = this
-        val sharedPreferences = getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val sharedPreferences = getSharedPreferences("settings", MODE_PRIVATE)
 
         val irkHex = uri.getQueryParameter("irk")
         val encKeyHex = uri.getQueryParameter("enc_key")
@@ -217,13 +222,13 @@ class MainActivity : ComponentActivity() {
             if (irkHex != null && validateHexInput(irkHex)) {
                 val irkBytes = hexStringToByteArray(irkHex)
                 val irkBase64 = Base64.encode(irkBytes)
-                sharedPreferences.edit().putString("IRK", irkBase64).apply()
+                sharedPreferences.edit {putString("IRK", irkBase64)}
             }
 
             if (encKeyHex != null && validateHexInput(encKeyHex)) {
                 val encKeyBytes = hexStringToByteArray(encKeyHex)
                 val encKeyBase64 = Base64.encode(encKeyBytes)
-                sharedPreferences.edit().putString("ENC_KEY", encKeyBase64).apply()
+                sharedPreferences.edit { putString("ENC_KEY", encKeyBase64)}
             }
 
             Toast.makeText(this, "Magic keys added successfully!", Toast.LENGTH_SHORT).show()
@@ -247,6 +252,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@ExperimentalHazeMaterialsApi
 @SuppressLint("MissingPermission", "InlinedApi", "UnspecifiedRegisterReceiverFlag")
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -404,6 +410,7 @@ fun Main() {
     }
 }
 
+@ExperimentalHazeMaterialsApi
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun PermissionsScreen(
@@ -586,7 +593,7 @@ fun PermissionsScreen(
             onClick = {
                 val intent = Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:${context.packageName}")
+                    "package:${context.packageName}".toUri()
                 )
                 context.startActivity(intent)
                 onOverlaySettingsReturn()
@@ -616,9 +623,9 @@ fun PermissionsScreen(
 
             Button(
                 onClick = {
-                    val editor = context.getSharedPreferences("settings", MODE_PRIVATE).edit()
-                    editor.putBoolean("overlay_permission_skipped", true)
-                    editor.apply()
+                    context.getSharedPreferences("settings", MODE_PRIVATE).edit {
+                        putBoolean("overlay_permission_skipped", true)
+                    }
 
                     val intent = Intent(context, MainActivity::class.java)
                     intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)

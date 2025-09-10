@@ -74,6 +74,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -344,11 +345,11 @@ fun DebugScreen(navController: NavController) {
     val packetLogs = airPodsService?.packetLogsFlow?.collectAsState(emptySet())?.value ?: emptySet()
     val shouldScrollToBottom = remember { mutableStateOf(true) }
 
-    val refreshTrigger = remember { mutableStateOf(0) }
-    LaunchedEffect(refreshTrigger.value) {
+    val refreshTrigger = remember { mutableIntStateOf(0) }
+    LaunchedEffect(refreshTrigger.intValue) {
         while(true) {
             delay(1000)
-            refreshTrigger.value = refreshTrigger.value + 1
+            refreshTrigger.intValue = refreshTrigger.intValue + 1
         }
     }
 
@@ -361,7 +362,7 @@ fun DebugScreen(navController: NavController) {
         Toast.makeText(context, "Packet copied to clipboard", Toast.LENGTH_SHORT).show()
     }
 
-    LaunchedEffect(packetLogs.size, refreshTrigger.value) {
+    LaunchedEffect(packetLogs.size, refreshTrigger.intValue) {
         if (shouldScrollToBottom.value && packetLogs.isNotEmpty()) {
             listState.animateScrollToItem(packetLogs.size - 1)
         }

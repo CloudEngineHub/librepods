@@ -423,7 +423,7 @@ class AACPManager {
                 )
                 Log.d(
                     TAG, "Control command list is now: ${
-                    controlCommandStatusList.joinToString(", ") {
+                    controlCommandStatusList.joinToString(", ") { it ->
                         "${it.identifier.name} (${it.identifier.value.toHexString()}) - ${
                             it.value.joinToString(
                                 " "
@@ -692,8 +692,8 @@ class AACPManager {
         if (selfMacAddress.length != 17 || !selfMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}")) || targetMacAddress.length != 17 || !targetMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"))) {
             throw IllegalArgumentException("MAC address must be 6 bytes")
         }
-        Log.d(TAG, "SELFMAC: ${selfMacAddress}, TARGETMAC: ${targetMacAddress}")
-        Log.d(TAG, "Sending Media Information packet to ${targetMacAddress}")
+        Log.d(TAG, "SELFMAC: ${selfMacAddress}, TARGETMAC: $targetMacAddress")
+        Log.d(TAG, "Sending Media Information packet to $targetMacAddress")
         return sendDataPacket(createMediaInformationNewDevicePacket(selfMacAddress, targetMacAddress))
     }
 
@@ -775,7 +775,7 @@ class AACPManager {
         if (selfMacAddress.length != 17 || !selfMacAddress.matches(Regex("([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"))) {
             throw IllegalArgumentException("MAC address must be 6 bytes")
         }
-	    Log.d(TAG, "SELFMAC: ${selfMacAddress}")
+        Log.d(TAG, "SELFMAC: $selfMacAddress")
         val targetMac = connectedDevices.find { it.mac != selfMacAddress }?.mac
         Log.d(TAG, "Sending Media Information packet to ${targetMac ?: "unknown device"}")
         return sendDataPacket(
@@ -842,7 +842,7 @@ class AACPManager {
 
     fun createSmartRoutingShowUIPacket(targetMacAddress: String): ByteArray {
         val opcode = byteArrayOf(Opcodes.SMART_ROUTING, 0x00)
-	    val buffer = ByteBuffer.allocate(134)
+        val buffer = ByteBuffer.allocate(134)
         buffer.put(
             targetMacAddress.split(":").map { it.toInt(16).toByte() }.toByteArray().reversedArray()
         )

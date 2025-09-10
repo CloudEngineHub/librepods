@@ -134,7 +134,7 @@ fun AccessibilitySettings() {
             textColor = textColor
         )
 
-        val volumeSwipeSpeedOptions = mapOf<Byte, String>(
+        val volumeSwipeSpeedOptions = mapOf(
             1.toByte() to "Default",
             2.toByte() to "Longer",
             3.toByte() to "Longest"

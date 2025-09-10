@@ -113,7 +113,7 @@ class IslandWindow(private val context: Context) {
                     intent.getParcelableArrayListExtra("data", Battery::class.java)
                 } else {
                     @Suppress("DEPRECATION")
-                    intent.getParcelableArrayListExtra<Battery>("data")
+                    intent.getParcelableArrayListExtra("data")
                 }
                 updateBatteryDisplay(batteryList)
             } else if (intent?.action == AirPodsNotifications.DISCONNECT_RECEIVERS) {

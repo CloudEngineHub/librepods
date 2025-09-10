@@ -113,7 +113,7 @@
             android:layout_gravity="center"
             android:translationX="-12dp"
             android:background="@drawable/ic_undo_button_bg"
-            android:contentDescription="Undo button"
+            android:contentDescription="@string/undo"
             android:scaleType="centerInside"
             android:src="@drawable/ic_undo"
             android:tint="@android:color/white"

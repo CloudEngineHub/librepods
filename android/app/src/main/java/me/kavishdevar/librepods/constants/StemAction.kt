@@ -18,7 +18,6 @@
 
 package me.kavishdevar.librepods.constants
 
-import me.kavishdevar.librepods.constants.StemAction.entries
 import me.kavishdevar.librepods.utils.AACPManager
 
 enum class StemAction {

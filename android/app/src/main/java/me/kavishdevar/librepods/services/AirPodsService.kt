@@ -753,6 +753,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         }
     }
 
+    @Suppress("unused")
     fun cameraClosed() {
         cameraActive = false
         setupStemActions()
@@ -894,7 +895,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                         this@AirPodsService,
                         (batteryNotification.getBattery().find { it.component == BatteryComponent.LEFT}?.level?: 0).coerceAtMost(batteryNotification.getBattery().find { it.component == BatteryComponent.RIGHT}?.level?: 0),
                         IslandType.MOVED_TO_OTHER_DEVICE,
-                        reversed = reasonReverseTapped
+                        reversed = true
                     )
                 }
                 if (!aacpManager.owns) {
@@ -909,12 +910,12 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             }
 
             override fun onShowNearbyUI() {
-                // showIsland(
-                //         this@AirPodsService,
-                //         (batteryNotification.getBattery().find { it.component == BatteryComponent.LEFT}?.level?: 0).coerceAtMost(batteryNotification.getBattery().find { it.component == BatteryComponent.RIGHT}?.level?: 0),
-                //         IslandType.MOVED_TO_OTHER_DEVICE,
-                //         reversed = false
-                //     )
+                 showIsland(
+                         this@AirPodsService,
+                         (batteryNotification.getBattery().find { it.component == BatteryComponent.LEFT}?.level?: 0).coerceAtMost(batteryNotification.getBattery().find { it.component == BatteryComponent.RIGHT}?.level?: 0),
+                         IslandType.MOVED_TO_OTHER_DEVICE,
+                         reversed = false
+                 )
             }
 
             override fun onDeviceMetadataReceived(deviceMetadata: ByteArray) {
@@ -1462,7 +1463,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     }
 
     fun setBatteryMetadata() {
-        device?.let {
+        device?.let { it ->
             SystemApisUtils.setMetadata(
                 it,
                 it.METADATA_UNTETHERED_CASE_BATTERY,
@@ -1502,7 +1503,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         val componentName = ComponentName(this, BatteryWidget::class.java)
         val widgetIds = appWidgetManager.getAppWidgetIds(componentName)
 
-        val remoteViews = RemoteViews(packageName, R.layout.battery_widget).also {
+        val remoteViews = RemoteViews(packageName, R.layout.battery_widget).also { it ->
             val openActivityIntent = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
             it.setOnClickPendingIntent(R.id.battery_widget, openActivityIntent)
 
@@ -1569,7 +1570,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 if (widgetMobileBatteryEnabled) View.VISIBLE else View.GONE
             )
             if (widgetMobileBatteryEnabled) {
-                val batteryManager = getSystemService<BatteryManager>(BatteryManager::class.java)
+                val batteryManager = getSystemService(BatteryManager::class.java)
                 val batteryLevel =
                     batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
                 val charging =
@@ -1606,7 +1607,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         val appWidgetManager = AppWidgetManager.getInstance(this)
         val componentName = ComponentName(this, NoiseControlWidget::class.java)
         val widgetIds = appWidgetManager.getAppWidgetIds(componentName)
-        val remoteViews = RemoteViews(packageName, R.layout.noise_control_widget).also {
+        val remoteViews = RemoteViews(packageName, R.layout.noise_control_widget).also { it ->
             val ancStatus = ancNotification.status
             val allowOffModeValue = aacpManager.controlCommandStatusList.find { it.identifier == AACPManager.Companion.ControlCommandIdentifiers.ALLOW_OFF_OPTION }
             val allowOffMode = allowOffModeValue?.value?.takeIf { it.isNotEmpty() }?.get(0) == 0x01.toByte()
@@ -2198,7 +2199,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         Log.d("AirPodsService", macAddress)
 
         sharedPreferences.edit { putBoolean("CrossDeviceIsAvailable", false) }
-        device = getSystemService<BluetoothManager>(BluetoothManager::class.java).adapter.bondedDevices.find {
+        device = getSystemService(BluetoothManager::class.java).adapter.bondedDevices.find {
             it.address == macAddress
         }
 
@@ -2335,7 +2336,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                         setupStemActions()
 
                         while (socket.isConnected) {
-                            socket.let {
+                            socket.let { it ->
                                 val buffer = ByteArray(1024)
                                 val bytesRead = it.inputStream.read(buffer)
                                 var data: ByteArray

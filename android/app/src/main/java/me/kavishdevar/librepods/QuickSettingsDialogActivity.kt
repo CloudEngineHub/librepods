@@ -133,7 +133,7 @@ class QuickSettingsDialogActivity : ComponentActivity() {
         window.setGravity(Gravity.BOTTOM)
 
         Intent(this, AirPodsService::class.java).also { intent ->
-            bindService(intent, connection, Context.BIND_AUTO_CREATE)
+            bindService(intent, connection, BIND_AUTO_CREATE)
         }
 
         setContent {

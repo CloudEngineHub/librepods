@@ -1,24 +1,23 @@
 /*
  * LibrePods - AirPods liberated from Apple’s ecosystem
- * 
+ *
  * Copyright (C) 2025 LibrePods contributors
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
  * by the Free Software Foundation, either version 3 of the License.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 package me.kavishdevar.librepods
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -29,26 +28,12 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.annotation.RequiresPermission
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import me.kavishdevar.librepods.screens.AccessibilitySettingsScreen
-import me.kavishdevar.librepods.screens.EqualizerSettingsScreen
-import me.kavishdevar.librepods.ui.theme.LibrePodsTheme
-import org.lsposed.hiddenapibypass.HiddenApiBypass
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -56,36 +41,40 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import me.kavishdevar.librepods.screens.AccessibilitySettingsScreen
+import me.kavishdevar.librepods.screens.EqualizerSettingsScreen
+import me.kavishdevar.librepods.ui.theme.LibrePodsTheme
+import org.lsposed.hiddenapibypass.HiddenApiBypass
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
+@Suppress("PrivatePropertyName")
 class CustomDevice : ComponentActivity() {
     private val TAG = "AirPodsAccessibilitySettings"
     private var socket: BluetoothSocket? = null
     private val deviceAddress = "28:2D:7F:C2:05:5B"
-    private val psm = 31
     private val uuid: ParcelUuid = ParcelUuid.fromString("00000000-0000-0000-0000-00000000000")
 
     // Data states
     private val isConnected = mutableStateOf(false)
-    private val leftAmplification = mutableStateOf(1.0f)
-    private val leftTone = mutableStateOf(1.0f)
-    private val leftAmbientNoiseReduction = mutableStateOf(0.5f)
+    private val leftAmplification = mutableFloatStateOf(1.0f)
+    private val leftTone = mutableFloatStateOf(1.0f)
+    private val leftAmbientNoiseReduction = mutableFloatStateOf(0.5f)
     private val leftConversationBoost = mutableStateOf(false)
     private val leftEQ = mutableStateOf(FloatArray(8) { 50.0f })
 
-    private val rightAmplification = mutableStateOf(1.0f)
-    private val rightTone = mutableStateOf(1.0f)
-    private val rightAmbientNoiseReduction = mutableStateOf(0.5f)
+    private val rightAmplification = mutableFloatStateOf(1.0f)
+    private val rightTone = mutableFloatStateOf(1.0f)
+    private val rightAmbientNoiseReduction = mutableFloatStateOf(0.5f)
     private val rightConversationBoost = mutableStateOf(false)
     private val rightEQ = mutableStateOf(FloatArray(8) { 50.0f })
 
     private val singleMode = mutableStateOf(false)
-    private val amplification = mutableStateOf(1.0f)
-    private val balance = mutableStateOf(0.5f)
+    private val amplification = mutableFloatStateOf(1.0f)
+    private val balance = mutableFloatStateOf(0.5f)
 
-    private val retryCount = mutableStateOf(0)
+    private val retryCount = mutableIntStateOf(0)
     private val showRetryButton = mutableStateOf(false)
     private val maxRetries = 3
 
@@ -146,18 +135,19 @@ class CustomDevice : ComponentActivity() {
         socket?.close()
     }
 
+    @SuppressLint("MissingPermission")
     private suspend fun connectL2CAP() {
-        retryCount.value = 0
+        retryCount.intValue = 0
         // Close any existing socket
         socket?.close()
         socket = null
-        while (retryCount.value < maxRetries) {
+        while (retryCount.intValue < maxRetries) {
             try {
-                Log.d(TAG, "Starting L2CAP connection setup, attempt ${retryCount.value + 1}")
+                Log.d(TAG, "Starting L2CAP connection setup, attempt ${retryCount.intValue + 1}")
                 HiddenApiBypass.addHiddenApiExemptions("Landroid/bluetooth/BluetoothSocket;")
                 val manager = getSystemService(BLUETOOTH_SERVICE) as BluetoothManager
                 val device: BluetoothDevice = manager.adapter.getRemoteDevice(deviceAddress)
-                socket = createBluetoothSocket(device, psm)
+                socket = createBluetoothSocket(device)
 
                 withTimeout(5000L) {
                     socket?.connect()
@@ -177,9 +167,9 @@ class CustomDevice : ComponentActivity() {
 
                 return
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to connect, attempt ${retryCount.value + 1}: ${e.message}")
-                retryCount.value++
-                if (retryCount.value < maxRetries) {
+                Log.e(TAG, "Failed to connect, attempt ${retryCount.intValue + 1}: ${e.message}")
+                retryCount.intValue++
+                if (retryCount.intValue < maxRetries) {
                     delay(2000) // Wait 2 seconds before retry
                 }
             }
@@ -193,7 +183,7 @@ class CustomDevice : ComponentActivity() {
         }
     }
 
-    private fun createBluetoothSocket(device: BluetoothDevice, psm: Int): BluetoothSocket {
+    private fun createBluetoothSocket(device: BluetoothDevice): BluetoothSocket {
         val type = 3 // L2CAP
         val constructorSpecs = listOf(
             arrayOf(device, type, true, true, 31, uuid),
@@ -300,18 +290,18 @@ class CustomDevice : ComponentActivity() {
         leftEQ.value = newLeftEQ
         if (singleMode.value) rightEQ.value = newLeftEQ
 
-        leftAmplification.value = buffer.float
-        Log.d(TAG, "Parsed left amplification: ${leftAmplification.value}")
-        leftTone.value = buffer.float
-        Log.d(TAG, "Parsed left tone: ${leftTone.value}")
-        if (singleMode.value) rightTone.value = leftTone.value
+        leftAmplification.floatValue = buffer.float
+        Log.d(TAG, "Parsed left amplification: ${leftAmplification.floatValue}")
+        leftTone.floatValue = buffer.float
+        Log.d(TAG, "Parsed left tone: ${leftTone.floatValue}")
+        if (singleMode.value) rightTone.floatValue = leftTone.floatValue
         val leftConvFloat = buffer.float
         leftConversationBoost.value = leftConvFloat > 0.5f
         Log.d(TAG, "Parsed left conversation boost: $leftConvFloat (${leftConversationBoost.value})")
         if (singleMode.value) rightConversationBoost.value = leftConversationBoost.value
-        leftAmbientNoiseReduction.value = buffer.float
-        Log.d(TAG, "Parsed left ambient noise reduction: ${leftAmbientNoiseReduction.value}")
-        if (singleMode.value) rightAmbientNoiseReduction.value = leftAmbientNoiseReduction.value
+        leftAmbientNoiseReduction.floatValue = buffer.float
+        Log.d(TAG, "Parsed left ambient noise reduction: ${leftAmbientNoiseReduction.floatValue}")
+        if (singleMode.value) rightAmbientNoiseReduction.floatValue = leftAmbientNoiseReduction.floatValue
 
         // Right bud
         val newRightEQ = rightEQ.value.copyOf()
@@ -321,24 +311,24 @@ class CustomDevice : ComponentActivity() {
         }
         rightEQ.value = newRightEQ
 
-        rightAmplification.value = buffer.float
-        Log.d(TAG, "Parsed right amplification: ${rightAmplification.value}")
-        rightTone.value = buffer.float
-        Log.d(TAG, "Parsed right tone: ${rightTone.value}")
+        rightAmplification.floatValue = buffer.float
+        Log.d(TAG, "Parsed right amplification: ${rightAmplification.floatValue}")
+        rightTone.floatValue = buffer.float
+        Log.d(TAG, "Parsed right tone: ${rightTone.floatValue}")
         val rightConvFloat = buffer.float
         rightConversationBoost.value = rightConvFloat > 0.5f
         Log.d(TAG, "Parsed right conversation boost: $rightConvFloat (${rightConversationBoost.value})")
-        rightAmbientNoiseReduction.value = buffer.float
-        Log.d(TAG, "Parsed right ambient noise reduction: ${rightAmbientNoiseReduction.value}")
+        rightAmbientNoiseReduction.floatValue = buffer.float
+        Log.d(TAG, "Parsed right ambient noise reduction: ${rightAmbientNoiseReduction.floatValue}")
 
         Log.d(TAG, "Settings parsed successfully")
 
         // Update single mode values if in single mode
         if (singleMode.value) {
-            val avg = (leftAmplification.value + rightAmplification.value) / 2
-            amplification.value = avg.coerceIn(0f, 1f)
-            val diff = rightAmplification.value - leftAmplification.value
-            balance.value = (0.5f + diff / (2 * avg)).coerceIn(0f, 1f)
+            val avg = (leftAmplification.floatValue + rightAmplification.floatValue) / 2
+            amplification.floatValue = avg.coerceIn(0f, 1f)
+            val diff = rightAmplification.floatValue - leftAmplification.floatValue
+            balance.floatValue = (0.5f + diff / (2 * avg)).coerceIn(0f, 1f)
         }
     }
 
@@ -363,19 +353,19 @@ class CustomDevice : ComponentActivity() {
                 for (eq in leftEQ.value) {
                     buffer.putFloat(eq)
                 }
-                buffer.putFloat(leftAmplification.value)
-                buffer.putFloat(leftTone.value)
+                buffer.putFloat(leftAmplification.floatValue)
+                buffer.putFloat(leftTone.floatValue)
                 buffer.putFloat(if (leftConversationBoost.value) 1.0f else 0.0f)
-                buffer.putFloat(leftAmbientNoiseReduction.value)
+                buffer.putFloat(leftAmbientNoiseReduction.floatValue)
 
                 // Right bud
                 for (eq in rightEQ.value) {
                     buffer.putFloat(eq)
                 }
-                buffer.putFloat(rightAmplification.value)
-                buffer.putFloat(rightTone.value)
+                buffer.putFloat(rightAmplification.floatValue)
+                buffer.putFloat(rightTone.floatValue)
                 buffer.putFloat(if (rightConversationBoost.value) 1.0f else 0.0f)
-                buffer.putFloat(rightAmbientNoiseReduction.value)
+                buffer.putFloat(rightAmbientNoiseReduction.floatValue)
 
                 val packet = buffer.array()
                 Log.d(TAG, "Packet length: ${packet.size}")

@@ -244,7 +244,7 @@ fun isHeadTrackingData(data: ByteArray): Boolean {
     )
 
     for (i in prefixPattern.indices) {
-        if (data[i] != prefixPattern[i].toByte()) return false
+        if (data[i] != prefixPattern[i]) return false
     }
 
     if (data[10] != 0x44.toByte() && data[10] != 0x45.toByte()) return false

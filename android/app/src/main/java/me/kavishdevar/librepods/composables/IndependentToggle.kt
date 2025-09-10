@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import me.kavishdevar.librepods.services.AirPodsService
 import me.kavishdevar.librepods.utils.AACPManager
 import kotlin.io.encoding.ExperimentalEncodingApi
+import androidx.core.content.edit
 
 @Composable
 fun IndependentToggle(name: String, service: AirPodsService? = null, functionName: String? = null, sharedPreferences: SharedPreferences, default: Boolean = false, controlCommandIdentifier: AACPManager.Companion.ControlCommandIdentifiers? = null) {
@@ -70,7 +71,7 @@ fun IndependentToggle(name: String, service: AirPodsService? = null, functionNam
 
     fun cb() {
         if (controlCommandIdentifier == null) {
-            sharedPreferences.edit().putBoolean(snakeCasedName, checked).apply()
+            sharedPreferences.edit { putBoolean(snakeCasedName, checked) }
         }
         if (functionName != null && service != null) {
             val method =
