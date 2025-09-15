@@ -195,6 +195,15 @@ class AACPManager {
     var audioSource: AudioSource? = null
         private set
 
+    var eqData = FloatArray(8) { 0.0f }
+        private set
+    
+    var eqOnPhone: Boolean = false
+        private set
+    
+    var eqOnMedia: Boolean = false
+        private set
+
     fun getControlCommandStatus(identifier: ControlCommandIdentifiers): ControlCommandStatus? {
         return controlCommandStatusList.find { it.identifier == identifier }
     }
@@ -513,10 +522,58 @@ class AACPManager {
                 }
             }
 
+            Opcodes.EQ_DATA -> {
+                if (packet.size != 140) {
+                    Log.w(
+                        TAG,
+                        "Received EQ_DATA packet of unexpected size: ${packet.size}, expected 140"
+                    )
+                    return
+                }
+                if (packet[6] != 0x84.toByte()) {
+                    Log.w(
+                        TAG,
+                        "Received EQ_DATA packet with unexpected identifier: ${packet[6].toHexString()}, expected 0x84"
+                    )
+                    return
+                }
+                // first 4 bytes AACP header, next two bytes opcode, next to bytes identifer
+                eqOnMedia = (packet[10] == 0x01.toByte())
+                eqOnPhone = (packet[11] == 0x01.toByte())
+                // there are 4 eqs. i am not sure what those are for, maybe all 4 listening modes, or maybe phone+media left+right, but then there shouldn't be another flag for phone/media enabled. just directly the EQ... weird.
+                // the EQs are little endian floats
+                val eq1 = ByteBuffer.wrap(packet, 12, 32).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer()
+                val eq2 = ByteBuffer.wrap(packet, 44, 32).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer()
+                val eq3 = ByteBuffer.wrap(packet, 76, 32).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer()
+                val eq4 = ByteBuffer.wrap(packet, 108, 32).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer()
+                
+                // for now, just take the first EQ
+                eqData = FloatArray(8) { i -> eq1.get(i) }
+                Log.d(TAG, "EQ Data set to: ${eqData.toList()}, eqOnPhone: $eqOnPhone, eqOnMedia: $eqOnMedia")
+            }
+
             else -> {
                 callback?.onUnknownPacketReceived(packet)
             }
         }
+    }
+
+    fun sendEqualizerData(eqData: FloatArray, eqOnPhone: Boolean, eqOnMedia: Boolean): Boolean {
+        if (eqData.size != 8) {
+            throw IllegalArgumentException("EQ data must be 8 floats")
+        }
+        return sendDataPacket(createEqualizerDataPacket(eqData, eqOnPhone, eqOnMedia))
+    }
+
+    fun createEqualizerDataPacket(eqData: FloatArray, eqOnPhone: Boolean, eqOnMedia: Boolean): ByteArray {
+        val opcode = byteArrayOf(Opcodes.EQ_DATA, 0x00)
+        val identifier = byteArrayOf(0x84.toByte(), 0x00)
+        val something = byteArrayOf(0x02, 0x02)
+        val phoneFlag = if (eqOnPhone) 0x01.toByte() else 0x00.toByte()
+        val mediaFlag = if (eqOnMedia) 0x01.toByte() else 0x00.toByte()
+        val buffer = ByteBuffer.allocate(32).order(ByteOrder.LITTLE_ENDIAN)
+        eqData.forEach { buffer.putFloat(it) }
+        return opcode + identifier + something + byteArrayOf(phoneFlag, mediaFlag) + buffer.array() + buffer.array() + buffer.array() + buffer.array()
     }
 
     fun sendNotificationRequest(): Boolean {
@@ -777,6 +834,10 @@ class AACPManager {
         }
         Log.d(TAG, "SELFMAC: $selfMacAddress")
         val targetMac = connectedDevices.find { it.mac != selfMacAddress }?.mac
+        if (targetMac == null) {
+            Log.w(TAG, "Cannot send Media Information packet: No connected device found")
+            return false
+        }
         Log.d(TAG, "Sending Media Information packet to ${targetMac ?: "unknown device"}")
         return sendDataPacket(
             createMediaInformationPacket(
@@ -1108,7 +1169,7 @@ class AACPManager {
     }
 
     fun sendSomePacketIDontKnowWhatItIs() {
-        // 2900 00ff ffff ffff ffff
+        // 2900 00ff ffff ffff ffff -- enables setting EQ
         sendDataPacket(
             byteArrayOf(
                 0x29, 0x00,

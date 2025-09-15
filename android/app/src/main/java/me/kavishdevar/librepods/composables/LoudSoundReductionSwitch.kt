@@ -20,6 +20,7 @@
 
 package me.kavishdevar.librepods.composables
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -62,7 +63,27 @@ fun LoudSoundReductionSwitch(attManager: ATTManager) {
         while (attManager.socket?.isConnected != true) {
             delay(100)
         }
-        attManager.read(0x1b)
+
+        var parsed = false
+        for (attempt in 1..3) {
+            try {
+                val data = attManager.read(0x1b)
+                if (data.size == 2) {
+                    loudSoundReductionEnabled = data[1].toInt() != 0
+                    Log.d("LoudSoundReduction", "Read attempt $attempt: enabled=${loudSoundReductionEnabled}")
+                    parsed = true
+                    break
+                } else {
+                    Log.d("LoudSoundReduction", "Read attempt $attempt returned empty data")
+                }
+            } catch (e: Exception) {
+                Log.w("LoudSoundReduction", "Read attempt $attempt failed: ${e.message}")
+            }
+            delay(200)
+        }
+        if (!parsed) {
+            Log.d("LoudSoundReduction", "Failed to read loud sound reduction state after 3 attempts")
+        }
     }
 
     LaunchedEffect(loudSoundReductionEnabled) {

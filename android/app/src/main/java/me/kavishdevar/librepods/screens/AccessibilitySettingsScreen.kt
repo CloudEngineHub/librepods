@@ -40,7 +40,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
@@ -60,6 +63,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -95,6 +99,7 @@ import java.nio.ByteOrder
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 var debounceJob: Job? = null
+var phoneMediaDebounceJob: Job? = null
 const val TAG = "AccessibilitySettings"
 
 @SuppressLint("DefaultLocale")
@@ -108,6 +113,9 @@ fun AccessibilitySettingsScreen() {
     val hazeState = remember { HazeState() }
     val snackbarHostState = remember { SnackbarHostState() }
     val attManager = ATTManager(ServiceManager.getService()?.device?: throw IllegalStateException("No device connected"))
+    // get the AACP manager if available (used for EQ read/write)
+    val aacpManager = remember { ServiceManager.getService()?.aacpManager }
+
     DisposableEffect(attManager) {
         onDispose {
             Log.d(TAG, "Disconnecting from ATT...")
@@ -187,15 +195,15 @@ fun AccessibilitySettingsScreen() {
             val conversationBoostEnabled = remember { mutableStateOf(false) }
             val eq = remember { mutableStateOf(FloatArray(8)) }
 
-            // Flag to prevent sending default settings to device while we are loading device state
+            val phoneMediaEQ = remember { mutableStateOf(FloatArray(8) { 0.5f }) }
+            val phoneEQEnabled = remember { mutableStateOf(false) }
+            val mediaEQEnabled = remember { mutableStateOf(false) }
+
             val initialLoadComplete = remember { mutableStateOf(false) }
 
-            // Ensure we actually read device properties before allowing writes.
-            // Try up to 3 times silently; mark success only if parse succeeds.
             val initialReadSucceeded = remember { mutableStateOf(false) }
             val initialReadAttempts = remember { mutableStateOf(0) }
 
-            // Populate a single stored representation for convenience (kept for debug/logging)
             val transparencySettings = remember {
                 mutableStateOf(
                     TransparencySettings(
@@ -217,13 +225,11 @@ fun AccessibilitySettingsScreen() {
             }
 
             LaunchedEffect(enabled.value, amplificationSliderValue.floatValue, balanceSliderValue.floatValue, toneSliderValue.floatValue, conversationBoostEnabled.value, ambientNoiseReductionSliderValue.floatValue, eq.value, initialLoadComplete.value, initialReadSucceeded.value) {
-                // Do not send updates until we have populated UI from the device
                 if (!initialLoadComplete.value) {
                     Log.d(TAG, "Initial device load not complete - skipping send")
                     return@LaunchedEffect
                 }
 
-                // Do not send until we've successfully read the device properties at least once.
                 if (!initialReadSucceeded.value) {
                     Log.d(TAG, "Initial device read not successful yet - skipping send until read succeeds")
                     return@LaunchedEffect
@@ -248,7 +254,6 @@ fun AccessibilitySettingsScreen() {
                 sendTransparencySettings(attManager, transparencySettings.value)
             }
 
-            // Move initial connect / read here so we can populate the UI state variables above.
             LaunchedEffect(Unit) {
                 Log.d(TAG, "Connecting to ATT...")
                 try {
@@ -256,9 +261,28 @@ fun AccessibilitySettingsScreen() {
                     while (attManager.socket?.isConnected != true) {
                         delay(100)
                     }
+                    // If we have an AACP manager, prefer its EQ data to populate EQ controls first
+                    try {
+                        if (aacpManager != null) {
+                            Log.d(TAG, "Found AACPManager, reading cached EQ data")
+                            val aacpEQ = aacpManager.eqData
+                            if (aacpEQ.isNotEmpty()) {
+                                eq.value = aacpEQ.copyOf()
+                                phoneMediaEQ.value = aacpEQ.copyOf()
+                                phoneEQEnabled.value = aacpManager.eqOnPhone
+                                mediaEQEnabled.value = aacpManager.eqOnMedia
+                                Log.d(TAG, "Populated EQ from AACPManager: ${aacpEQ.toList()}")
+                            } else {
+                                Log.d(TAG, "AACPManager EQ data empty")
+                            }
+                        } else {
+                            Log.d(TAG, "No AACPManager available")
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Error reading EQ from AACPManager: ${e.message}")
+                    }
 
                     var parsedSettings: TransparencySettings? = null
-                    // Try up to 3 read attempts silently
                     for (attempt in 1..3) {
                         initialReadAttempts.value = attempt
                         try {
@@ -278,7 +302,6 @@ fun AccessibilitySettingsScreen() {
 
                     if (parsedSettings != null) {
                         Log.d(TAG, "Initial transparency settings: $parsedSettings")
-                        // Populate UI states from device values without triggering a send (initialReadSucceeded is set below)
                         enabled.value = parsedSettings.enabled
                         amplificationSliderValue.floatValue = parsedSettings.netAmplification
                         balanceSliderValue.floatValue = parsedSettings.balance
@@ -293,8 +316,28 @@ fun AccessibilitySettingsScreen() {
                 } catch (e: IOException) {
                     e.printStackTrace()
                 } finally {
-                    // mark load complete (UI may be editable), but writes remain blocked until a successful read
                     initialLoadComplete.value = true
+                }
+            }
+
+            // Debounced write for phone/media EQ using AACP manager when values/toggles change
+            LaunchedEffect(phoneMediaEQ.value, phoneEQEnabled.value, mediaEQEnabled.value) {
+                phoneMediaDebounceJob?.cancel()
+                phoneMediaDebounceJob = CoroutineScope(Dispatchers.IO).launch {
+                    delay(150)
+                    val manager = ServiceManager.getService()?.aacpManager
+                    if (manager == null) {
+                        Log.w(TAG, "Cannot write EQ: AACPManager not available")
+                        return@launch
+                    }
+                    try {
+                        val phoneByte = if (phoneEQEnabled.value) 0x01.toByte() else 0x02.toByte()
+                        val mediaByte = if (mediaEQEnabled.value) 0x01.toByte() else 0x02.toByte()
+                        Log.d(TAG, "Sending phone/media EQ (phoneEnabled=${phoneEQEnabled.value}, mediaEnabled=${mediaEQEnabled.value})")
+                        manager.sendPhoneMediaEQ(phoneMediaEQ.value, phoneByte, mediaByte)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Error sending phone/media EQ: ${e.message}")
+                    }
                 }
             }
 
@@ -448,7 +491,168 @@ fun AccessibilitySettingsScreen() {
                                 newEQ[i] = eqValue.floatValue
                                 eq.value = newEQ
                             },
-                            valueRange = 0f..1f,
+                            valueRange = 0f..100f,
+                            modifier = Modifier
+                                .fillMaxWidth(0.9f)
+                        )
+
+                        Text(
+                            text = "Band ${i + 1}",
+                            fontSize = 12.sp,
+                            color = textColor,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Apply EQ to".uppercase(),
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Light,
+                    color = textColor.copy(alpha = 0.6f),
+                    fontFamily = FontFamily(Font(R.font.sf_pro))
+                ),
+                modifier = Modifier.padding(8.dp, bottom = 2.dp)
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(backgroundColor, RoundedCornerShape(14.dp))
+                    .padding(top = 0.dp, bottom = 12.dp)
+            ) {
+                val darkModeLocal = isSystemInDarkTheme()
+
+                val phoneShape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)
+                var phoneBackgroundColor by remember { mutableStateOf(if (darkModeLocal) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)) }
+                val phoneAnimatedBackgroundColor by animateColorAsState(targetValue = phoneBackgroundColor, animationSpec = tween(durationMillis = 500))
+
+                Row(
+                    modifier = Modifier
+                        .height(48.dp)
+                        .fillMaxWidth()
+                        .background(phoneAnimatedBackgroundColor, phoneShape)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onPress = {
+                                    phoneBackgroundColor = if (darkModeLocal) Color(0x40888888) else Color(0x40D9D9D9)
+                                    tryAwaitRelease()
+                                    phoneBackgroundColor = if (darkModeLocal) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
+                                    phoneEQEnabled.value = !phoneEQEnabled.value
+                                }
+                            )
+                        }
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Phone",
+                        fontSize = 16.sp,
+                        fontFamily = FontFamily(Font(R.font.sf_pro)),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Checkbox(
+                        checked = phoneEQEnabled.value,
+                        onCheckedChange = { phoneEQEnabled.value = it },
+                        colors = CheckboxDefaults.colors().copy(
+                            checkedCheckmarkColor = Color(0xFF007AFF),
+                            uncheckedCheckmarkColor = Color.Transparent,
+                            checkedBoxColor = Color.Transparent,
+                            uncheckedBoxColor = Color.Transparent,
+                            checkedBorderColor = Color.Transparent,
+                            uncheckedBorderColor = Color.Transparent
+                        ),
+                        modifier = Modifier
+                            .height(24.dp)
+                            .scale(1.5f)
+                    )
+                }
+
+                HorizontalDivider(
+                    thickness = 1.5.dp,
+                    color = Color(0x40888888)
+                )
+
+                val mediaShape = RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)
+                var mediaBackgroundColor by remember { mutableStateOf(if (darkModeLocal) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)) }
+                val mediaAnimatedBackgroundColor by animateColorAsState(targetValue = mediaBackgroundColor, animationSpec = tween(durationMillis = 500))
+
+                Row(
+                    modifier = Modifier
+                        .height(48.dp)
+                        .fillMaxWidth()
+                        .background(mediaAnimatedBackgroundColor, mediaShape)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onPress = {
+                                    mediaBackgroundColor = if (darkModeLocal) Color(0x40888888) else Color(0x40D9D9D9)
+                                    tryAwaitRelease()
+                                    mediaBackgroundColor = if (darkModeLocal) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
+                                    mediaEQEnabled.value = !mediaEQEnabled.value
+                                }
+                            )
+                        }
+                        .padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Media",
+                        fontSize = 16.sp,
+                        fontFamily = FontFamily(Font(R.font.sf_pro)),
+                        modifier = Modifier.weight(1f)
+                    )
+                    Checkbox(
+                        checked = mediaEQEnabled.value,
+                        onCheckedChange = { mediaEQEnabled.value = it },
+                        colors = CheckboxDefaults.colors().copy(
+                            checkedCheckmarkColor = Color(0xFF007AFF),
+                            uncheckedCheckmarkColor = Color.Transparent,
+                            checkedBoxColor = Color.Transparent,
+                            uncheckedBoxColor = Color.Transparent,
+                            checkedBorderColor = Color.Transparent,
+                            uncheckedBorderColor = Color.Transparent
+                        ),
+                        modifier = Modifier
+                            .height(24.dp)
+                            .scale(1.5f)
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(backgroundColor, RoundedCornerShape(14.dp))
+                    .padding(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                for (i in 0 until 8) {
+                    val eqPhoneValue = remember(phoneMediaEQ.value[i]) { mutableFloatStateOf(phoneMediaEQ.value[i]) }
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(32.dp)
+                    ) {
+                        Text(
+                            text = String.format("%.2f", eqPhoneValue.floatValue),
+                            fontSize = 12.sp,
+                            color = textColor,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+
+                        Slider(
+                            value = eqPhoneValue.floatValue,
+                            onValueChange = { newVal ->
+                                eqPhoneValue.floatValue = newVal
+                                val newEQ = phoneMediaEQ.value.copyOf()
+                                newEQ[i] = eqPhoneValue.floatValue
+                                phoneMediaEQ.value = newEQ
+                            },
+                            valueRange = 0f..100f,
                             modifier = Modifier
                                 .fillMaxWidth(0.9f)
                         )
@@ -578,7 +782,6 @@ private fun parseTransparencySettingsResponse(data: ByteArray): TransparencySett
     val enabled = buffer.float
     Log.d(TAG, "Parsed enabled: $enabled")
 
-    // Left bud
     val leftEQ = FloatArray(8)
     for (i in 0..7) {
         leftEQ[i] = buffer.float
@@ -642,7 +845,7 @@ private fun sendTransparencySettings(
     debounceJob = CoroutineScope(Dispatchers.IO).launch {
         delay(100)
         try {
-            val buffer = ByteBuffer.allocate(100).order(ByteOrder.LITTLE_ENDIAN) // 100 data bytes
+            val buffer = ByteBuffer.allocate(100).order(ByteOrder.LITTLE_ENDIAN)
 
             Log.d(TAG,
                 "Sending settings: $transparencySettings"
@@ -673,6 +876,25 @@ private fun sendTransparencySettings(
             )
         } catch (e: IOException) {
             e.printStackTrace()
+        }
+    }
+}
+
+// Debounced send helper for phone/media EQ (if needed elsewhere)
+private fun sendPhoneMediaEQ(aacpManager: me.kavishdevar.librepods.utils.AACPManager?, eq: FloatArray, phoneEnabled: Boolean, mediaEnabled: Boolean) {
+    phoneMediaDebounceJob?.cancel()
+    phoneMediaDebounceJob = CoroutineScope(Dispatchers.IO).launch {
+        delay(100)
+        try {
+            if (aacpManager == null) {
+                Log.w(TAG, "AACPManger is null; cannot send phone/media EQ")
+                return@launch
+            }
+            val phoneByte = if (phoneEnabled) 0x01.toByte() else 0x02.toByte()
+            val mediaByte = if (mediaEnabled) 0x01.toByte() else 0x02.toByte()
+            aacpManager.sendPhoneMediaEQ(eq, phoneByte, mediaByte)
+        } catch (e: Exception) {
+            Log.w(TAG, "Error in sendPhoneMediaEQ: ${e.message}")
         }
     }
 }
