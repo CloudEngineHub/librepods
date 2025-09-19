@@ -165,7 +165,7 @@ class IslandWindow(private val context: Context) {
     @SuppressLint("SetTextI18s", "ClickableViewAccessibility", "UnspecifiedRegisterReceiverFlag",
         "SetTextI18n"
     )
-    fun show(name: String, batteryPercentage: Int, context: Context, type: IslandType = IslandType.CONNECTED, reversed: Boolean = false) {
+    fun show(name: String, batteryPercentage: Int, context: Context, type: IslandType = IslandType.CONNECTED, reversed: Boolean = false, otherDeviceName: String? = null) {
         if (ServiceManager.getService()?.islandOpen == true) return
         else ServiceManager.getService()?.islandOpen = true
 
@@ -352,19 +352,22 @@ class IslandWindow(private val context: Context) {
 
         when (type) {
             IslandType.CONNECTED -> {
-                islandView.findViewById<TextView>(R.id.island_connected_text).text = getString(context, R.string.island_connected_text)
+                islandView.findViewById<TextView>(R.id.island_connected_text).text = context.getString(R.string.island_connected_text)
             }
             IslandType.TAKING_OVER -> {
-                islandView.findViewById<TextView>(R.id.island_connected_text).text = getString(context, R.string.island_taking_over_text)
+                islandView.findViewById<TextView>(R.id.island_connected_text).text = context.getString(R.string.island_taking_over_text)
             }
             IslandType.MOVED_TO_REMOTE -> {
-                islandView.findViewById<TextView>(R.id.island_connected_text).text = getString(context, R.string.island_moved_to_remote_text)
+                islandView.findViewById<TextView>(R.id.island_connected_text).text = context.getString(R.string.island_moved_to_remote_text)
             }
             IslandType.MOVED_TO_OTHER_DEVICE -> {
+                if (otherDeviceName == null || otherDeviceName.isEmpty()) {
+                    e("IslandWindow", "Other device name is null or empty for MOVED_TO_OTHER_DEVICE type")
+                }
                 if (reversed) {
-                    islandView.findViewById<TextView>(R.id.island_connected_text).text = getString(context, R.string.island_moved_to_other_device_reversed_text)
+                    islandView.findViewById<TextView>(R.id.island_connected_text).text = context.getString(R.string.island_moved_to_other_device_reversed_text)
                 } else {
-                    islandView.findViewById<TextView>(R.id.island_connected_text).text = getString(context, R.string.island_moved_to_other_device_text)
+                    islandView.findViewById<TextView>(R.id.island_connected_text).text = context.getString(R.string.island_moved_to_other_device_text, otherDeviceName)
                 }
             }
         }

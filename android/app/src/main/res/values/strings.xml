@@ -47,7 +47,7 @@
     <string name="island_connected_remote_text">Connected to Linux</string>
     <string name="island_taking_over_text">Connected</string>
     <string name="island_moved_to_remote_text">Moved to Linux</string>
-    <string name="island_moved_to_other_device_text">Moved to other device</string>
+    <string name="island_moved_to_other_device_text">Moved to %1$s</string>
     <string name="island_moved_to_other_device_reversed_text">Reconnect from notification</string>
     <string name="head_tracking">Head Tracking</string>
     <string name="head_gestures_details">Nod to answer calls, and shake your head to decline.</string>

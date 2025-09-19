@@ -61,6 +61,8 @@ object MediaController {
     private var conversationalAwarenessVolume: Int = 2
     private var conversationalAwarenessPauseMusic: Boolean = false
 
+    var recentlyLostOwnership: Boolean = false
+
     fun initialize(audioManager: AudioManager, sharedPreferences: SharedPreferences) {
         if (this::audioManager.isInitialized) {
             return
@@ -118,10 +120,14 @@ object MediaController {
 
                 if (isActive) {
                     Log.d("MediaController", "Detected play while pausedForOtherDevice; attempting to take over")
-                    pausedForOtherDevice = false
-                    userPlayedTheMedia = true
-                    if (!pausedWhileTakingOver) {
-                        ServiceManager.getService()?.takeOver("music")
+                    if (!recentlyLostOwnership) {
+                        pausedForOtherDevice = false
+                        userPlayedTheMedia = true
+                        if (!pausedWhileTakingOver) {
+                            ServiceManager.getService()?.takeOver("music")
+                        }
+                    } else {
+                        Log.d("MediaController", "Skipping take-over due to recent ownership loss")
                     }
                 } else {
                     Log.d("MediaController", "Still not active while pausedForOtherDevice; will clear state after timeout")
@@ -148,8 +154,12 @@ object MediaController {
             Log.d("MediaController", "pausedWhileTakingOver: $pausedWhileTakingOver")
             if (!pausedWhileTakingOver && isActive) {
                 if (lastKnownIsMusicActive != true) {
-                    Log.d("MediaController", "Music is active and not pausedWhileTakingOver; requesting takeOver")
-                    ServiceManager.getService()?.takeOver("music")
+                    if (!recentlyLostOwnership) {
+                        Log.d("MediaController", "Music is active and not pausedWhileTakingOver; requesting takeOver")
+                        ServiceManager.getService()?.takeOver("music")
+                    } else {
+                        Log.d("MediaController", "Skipping take-over due to recent ownership loss")
+                    }
                 }
             }
 

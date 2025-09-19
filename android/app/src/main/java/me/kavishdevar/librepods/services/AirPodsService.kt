@@ -872,16 +872,21 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 
             override fun onOwnershipChangeReceived(owns: Boolean) {
                 if (!owns) {
+                    MediaController.recentlyLostOwnership = true
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        MediaController.recentlyLostOwnership = false
+                    }, 3000)
                     Log.d("AirPodsService", "ownership lost")
                     MediaController.sendPause()
                     MediaController.pausedForOtherDevice = true
                 }
             }
 
-            override fun onOwnershipToFalseRequest(reasonReverseTapped: Boolean) {
+            override fun onOwnershipToFalseRequest(sender: String, reasonReverseTapped: Boolean) {
                 // TODO: Show a reverse button, but that's a lot of effort -- i'd have to change the UI too, which i hate doing, and handle other device's reverses too, and disconnect audio etc... so for now, just pause the audio and show the island without asking to reverse.
                 // handling reverse is a problem because we'd have to disconnect the audio, but there's no option connect audio again natively, so notification would have to be changed. I wish there was a way to just "change the audio output device".
                 // (20 minutes later) i've done it nonetheless :]
+                val senderName = aacpManager.connectedDevices.find { it.mac == sender }?.type ?: "Other device"
                 Log.d("AirPodsService", "other device has hijacked the connection, reasonReverseTapped: $reasonReverseTapped")
                 aacpManager.sendControlCommand(
                     AACPManager.Companion.ControlCommandIdentifiers.OWNS_CONNECTION.value,
@@ -895,7 +900,8 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                         this@AirPodsService,
                         (batteryNotification.getBattery().find { it.component == BatteryComponent.LEFT}?.level?: 0).coerceAtMost(batteryNotification.getBattery().find { it.component == BatteryComponent.RIGHT}?.level?: 0),
                         IslandType.MOVED_TO_OTHER_DEVICE,
-                        reversed = true
+                        reversed = true,
+                        otherDeviceName = senderName
                     )
                 }
                 if (!aacpManager.owns) {
@@ -903,19 +909,22 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                         this@AirPodsService,
                         (batteryNotification.getBattery().find { it.component == BatteryComponent.LEFT}?.level?: 0).coerceAtMost(batteryNotification.getBattery().find { it.component == BatteryComponent.RIGHT}?.level?: 0),
                         IslandType.MOVED_TO_OTHER_DEVICE,
-                        reversed = reasonReverseTapped
+                        reversed = reasonReverseTapped,
+                        otherDeviceName = senderName
                     )
                 }
                 MediaController.sendPause()
             }
 
-            override fun onShowNearbyUI() {
-                 showIsland(
-                         this@AirPodsService,
-                         (batteryNotification.getBattery().find { it.component == BatteryComponent.LEFT}?.level?: 0).coerceAtMost(batteryNotification.getBattery().find { it.component == BatteryComponent.RIGHT}?.level?: 0),
-                         IslandType.MOVED_TO_OTHER_DEVICE,
-                         reversed = false
-                 )
+            override fun onShowNearbyUI(sender: String) {
+                val senderName = aacpManager.connectedDevices.find { it.mac == sender }?.type ?: "Other device"
+                showIsland(
+                    this@AirPodsService,
+                    (batteryNotification.getBattery().find { it.component == BatteryComponent.LEFT}?.level?: 0).coerceAtMost(batteryNotification.getBattery().find { it.component == BatteryComponent.RIGHT}?.level?: 0),
+                    IslandType.MOVED_TO_OTHER_DEVICE,
+                    reversed = false,
+                    otherDeviceName = senderName
+                )
             }
 
             override fun onDeviceMetadataReceived(deviceMetadata: ByteArray) {
@@ -1316,7 +1325,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     var islandOpen = false
     var islandWindow: IslandWindow? = null
     @SuppressLint("MissingPermission")
-    fun showIsland(service: Service, batteryPercentage: Int, type: IslandType = IslandType.CONNECTED, reversed: Boolean = false) {
+    fun showIsland(service: Service, batteryPercentage: Int, type: IslandType = IslandType.CONNECTED, reversed: Boolean = false, otherDeviceName: String? = null) {
         Log.d("AirPodsService", "Showing island window")
         if (!Settings.canDrawOverlays(service)) {
             Log.d("AirPodsService", "No permission for SYSTEM_ALERT_WINDOW")
@@ -1324,7 +1333,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         }
         CoroutineScope(Dispatchers.Main).launch {
             islandWindow = IslandWindow(service.applicationContext)
-            islandWindow!!.show(sharedPreferences.getString("name", "AirPods Pro").toString(), batteryPercentage, this@AirPodsService, type, reversed)
+            islandWindow!!.show(sharedPreferences.getString("name", "AirPods Pro").toString(), batteryPercentage, this@AirPodsService, type, reversed, otherDeviceName)
         }
     }
 

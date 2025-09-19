@@ -174,7 +174,8 @@ class AACPManager {
         data class ConnectedDevice(
             val mac: String,
             val info1: Byte,
-            val info2: Byte
+            val info2: Byte,
+            var type: String?
         )
     }
 
@@ -242,8 +243,8 @@ class AACPManager {
         fun onAudioSourceReceived(audioSource: ByteArray)
         fun onOwnershipChangeReceived(owns: Boolean)
         fun onConnectedDevicesReceived(connectedDevices: List<ConnectedDevice>)
-        fun onOwnershipToFalseRequest(reasonReverseTapped: Boolean)
-        fun onShowNearbyUI()
+        fun onOwnershipToFalseRequest(sender: String, reasonReverseTapped: Boolean)
+        fun onShowNearbyUI(sender: String)
     }
 
     fun parseStemPressResponse(data: ByteArray): Pair<StemPressType, StemPressBudType> {
@@ -521,11 +522,21 @@ class AACPManager {
 
             Opcodes.SMART_ROUTING_RESP -> {
                 val packetString = packet.decodeToString()
+                val sender = packet.sliceArray(6..11).reversedArray().joinToString(":") { "%02X".format(it) }
+
+                if (connectedDevices.find { it.mac == sender }?.type == null && packetString.contains("btName")) {
+                    val nameStartIndex = packetString.indexOf("btName") + 7
+                    val nameEndIndex = if (packetString.contains("other")) (packetString.indexOf("otherDevice") - 2) else (packetString.indexOf("nearbyAudio") - 2)
+                    val name = packet.sliceArray(nameStartIndex..nameEndIndex).decodeToString()
+                    connectedDevices.find { it.mac == sender }?.type = name
+                    Log.d(TAG, "Device $sender is named $name")
+                }
+                Log.d(TAG, "Smart Routing Response from $sender: $packetString, type: ${connectedDevices.find { it.mac == sender }?.type}")
                 if (packetString.contains("SetOwnershipToFalse")) {
-                    callback?.onOwnershipToFalseRequest(packetString.contains("ReverseBannerTapped"))
+                    callback?.onOwnershipToFalseRequest(sender, packetString.contains("ReverseBannerTapped"))
                 }
                 if (packetString.contains("ShowNearbyUI")) {
-                    callback?.onShowNearbyUI()
+                    callback?.onShowNearbyUI(sender)
                 }
             }
 
@@ -544,7 +555,7 @@ class AACPManager {
                     )
                     return
                 }
-                // first 4 bytes AACP header, next two bytes opcode, next to bytes identifer
+
                 eqOnMedia = (packet[10] == 0x01.toByte())
                 eqOnPhone = (packet[11] == 0x01.toByte())
                 // there are 4 eqs. i am not sure what those are for, maybe all 4 listening modes, or maybe phone+media left+right, but then there shouldn't be another flag for phone/media enabled. just directly the EQ... weird.
@@ -554,7 +565,7 @@ class AACPManager {
                 val eq3 = ByteBuffer.wrap(packet, 76, 32).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer()
                 val eq4 = ByteBuffer.wrap(packet, 108, 32).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer()
                 
-                // for now, just take the first EQ
+                // for now, taking just the first EQ
                 eqData = FloatArray(8) { i -> eq1.get(i) }
                 Log.d(TAG, "EQ Data set to: ${eqData.toList()}, eqOnPhone: $eqOnPhone, eqOnMedia: $eqOnMedia")
             }
@@ -756,11 +767,11 @@ class AACPManager {
 
     fun createMediaInformationNewDevicePacket(selfMacAddress: String, targetMacAddress: String): ByteArray {
         val opcode = byteArrayOf(Opcodes.SMART_ROUTING, 0x00)
-        val buffer = ByteBuffer.allocate(112)
+        val buffer = ByteBuffer.allocate(116)
         buffer.put(
             targetMacAddress.split(":").map { it.toInt(16).toByte() }.toByteArray().reversedArray()
         )
-        buffer.put(byteArrayOf(0x68, 0x00))
+        buffer.put(byteArrayOf(0x6C, 0x00))
         buffer.put(byteArrayOf(0x01, 0xE5.toByte(), 0x4A))
         buffer.put("playingApp".toByteArray())
         buffer.put(0x42)
@@ -775,8 +786,8 @@ class AACPManager {
         buffer.put(selfMacAddress.toByteArray())
         buffer.put(0x46)
         buffer.put("btName".toByteArray())
-        buffer.put(0x43)
-        buffer.put("And".toByteArray())
+        buffer.put(0x47)
+        buffer.put("Android".toByteArray())
         buffer.put(0x58)
         buffer.put("otherDevice".toByteArray())
         buffer.put("AudioCategory".toByteArray())
@@ -805,8 +816,6 @@ class AACPManager {
         buffer.put(
             targetMacAddress.split(":").map { it.toInt(16).toByte() }.toByteArray().reversedArray()
         )
-        // 620001E54A6C6F63616C73636F7265306446726561736F6E4848696A61636B763251617564696F526F7574696E6753636F7265312D015F617564696F526F7574696E675365744F776E657273686970546F46616C7365014B72656D6F746573636F7265A5
-
         buffer.put(byteArrayOf(0x62, 0x00))
         buffer.put(byteArrayOf(0x01, 0xE5.toByte()))
         buffer.put(0x4A)
@@ -854,16 +863,16 @@ class AACPManager {
         streamingState: Boolean = true
     ): ByteArray {
         val opcode = byteArrayOf(Opcodes.SMART_ROUTING, 0x00)
-        val buffer = ByteBuffer.allocate(134)
+        val buffer = ByteBuffer.allocate(138)
         buffer.put(
             targetMacAddress.split(":").map { it.toInt(16).toByte() }.toByteArray().reversedArray()
         )
         buffer.put(
             byteArrayOf(
-                0x7E,
+                0x82.toByte(), // related to the length
                 0x00
             )
-        ) // something to do with the length, can't confirm, but changing causes airpods to soft reset
+        )
         buffer.put(byteArrayOf(0x01, 0xE5.toByte(), 0x4A)) // unknown, constant
         buffer.put("PlayingApp".toByteArray())
         buffer.put(byteArrayOf(0x56)) // 'V', seems like a identifier or a separator
@@ -877,8 +886,8 @@ class AACPManager {
         buffer.put(0x51) // 'Q'
         buffer.put(selfMacAddress.toByteArray()) // self MAC
         buffer.put("btName".toByteArray()) // self name
-        buffer.put(0x44) // 'D'
-        buffer.put("iPho".toByteArray()) // if set to iPad, shows "Moved to iPad, but most likely we're running on a phone. setting to anything else of the same length will show iPhone instead.
+        buffer.put(0x47) // 'D'
+        buffer.put("Android".toByteArray()) // if set to iPad, shows "Moved to iPad", but most likely we're running on a phone. setting to anything else of the same length will show iPhone instead.
         buffer.put(0x58) // 'X'
         buffer.put("otherDevice".toByteArray())
         buffer.put("AudioCategory".toByteArray())
@@ -973,11 +982,11 @@ class AACPManager {
 
     fun createAddTiPiDevicePacket(selfMacAddress: String, targetMacAddress: String): ByteArray {
         val opcode = byteArrayOf(Opcodes.SMART_ROUTING, 0x00)
-        val buffer = ByteBuffer.allocate(86)
+        val buffer = ByteBuffer.allocate(90)
         buffer.put(
             targetMacAddress.split(":").map { it.toInt(16).toByte() }.toByteArray().reversedArray()
         )
-        buffer.put(byteArrayOf(0x4E, 0x00))
+        buffer.put(byteArrayOf(0x52, 0x00))
         buffer.put(byteArrayOf(0x01, 0xE5.toByte()))
         buffer.put(0x48) // 'H'
         buffer.put("idleTime".toByteArray())
@@ -989,8 +998,8 @@ class AACPManager {
         buffer.put(selfMacAddress.toByteArray())
         buffer.put(0x46)
         buffer.put("btName".toByteArray())
-        buffer.put(0x43)
-        buffer.put("And".toByteArray())
+        buffer.put(0x47)
+        buffer.put("Android".toByteArray())
         buffer.put(0x50)
         buffer.put("nearbyAudioScore".toByteArray())
         buffer.put(byteArrayOf(0x0E))
@@ -1164,13 +1173,13 @@ class AACPManager {
             val mac = macBytes.joinToString(":") { "%02X".format(it) }
             val info1 = data[offset + 6]
             val info2 = data[offset + 7]
-            devices.add(ConnectedDevice(mac, info1, info2))
+            val existingDevice = devices.find { it.mac == mac }
+            devices.add(ConnectedDevice(mac, info1, info2, existingDevice?.type))
             offset += 8
         }
 
         return devices
     }
-
     fun sendSomePacketIDontKnowWhatItIs() {
         // 2900 00ff ffff ffff ffff -- enables setting EQ
         sendDataPacket(
