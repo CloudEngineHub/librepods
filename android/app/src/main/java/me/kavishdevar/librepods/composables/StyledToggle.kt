@@ -157,8 +157,7 @@ fun StyledToggle(
                                 checked = it
                                 cb()
                             }
-                        },
-                        indpendent = true
+                        }
                     )
                 }
             }
@@ -245,8 +244,7 @@ fun StyledToggle(
                         checked = it
                         cb()
                     }
-                },
-                indpendent = false
+                }
             )
         }
     }
@@ -367,8 +365,7 @@ fun StyledToggle(
                                 checked = it
                                 cb()
                             }
-                        },
-                        indpendent = true
+                        }
                     )
                 }
             }
@@ -455,8 +452,7 @@ fun StyledToggle(
                         checked = it
                         cb()
                     }
-                },
-                indpendent = false
+                }
             )
         }
     }
@@ -605,8 +601,7 @@ fun StyledToggle(
                                 checked = it
                                 cb()
                             }
-                        },
-                        indpendent = true
+                        }
                     )
                 }
             }
@@ -687,8 +682,7 @@ fun StyledToggle(
                         checked = it
                         cb()
                     }
-                },
-                indpendent = false
+                }
             )
         }
     }

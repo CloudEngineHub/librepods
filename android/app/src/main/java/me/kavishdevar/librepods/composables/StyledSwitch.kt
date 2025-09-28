@@ -79,7 +79,6 @@ fun StyledSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     enabled: Boolean = true,
-    indpendent: Boolean = true,
 ) {
     val isDarkTheme = isSystemInDarkTheme()
 
@@ -135,7 +134,6 @@ fun StyledSwitch(
                 .height(trackHeight)
                 .onSizeChanged { trackWidthPx.floatValue = it.width.toFloat() }
         )
-
         Box(
             modifier = Modifier
                 .padding(horizontal = 2.dp)
@@ -178,7 +176,9 @@ fun StyledSwitch(
                     { RoundedCornerShape(thumbHeight / 2) },
                     highlight = {
                         val progress = progressAnimation.value
-                        Highlight.AmbientDefault.copy(alpha = progress)
+                        Highlight.AmbientDefault.copy(
+                            alpha = progress
+                        )
                     },
                     shadow = {
                         Shadow(
@@ -188,21 +188,23 @@ fun StyledSwitch(
                     },
                     layerBlock = {
                         val progress = progressAnimation.value
-                        val scale = lerp(1f, 1.6f, progress)
+                        val scale = lerp(1f, 1.5f, progress)
                         scaleX = scale
                         scaleY = scale
                     },
                     onDrawBackdrop = { drawScope ->
                         drawIntoCanvas { canvas ->
                             canvas.save()
-                            canvas.drawRect(0f, 0f, size.width, size.height, Paint().apply {
-                                color = if (indpendent) {
-                                    if (isDarkTheme) Color(0xFF000000) else Color(0xFFF2F2F7)
-                                } else {
-                                    if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
+                            canvas.drawRect(
+                                left = 0f,
+                                top = 0f,
+                                right = size.width,
+                                bottom = size.height,
+                                paint = Paint().apply {
+                                    color = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
                                 }
-                            })
-                            scale(0.75f) {
+                            )
+                            scale(0.7f) {
                                 drawScope()
                             }
                         }
@@ -246,7 +248,7 @@ fun StyledSwitch(
     }
 }
 
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO)
 @Composable
 fun StyledSwitchPreview() {
     val isDarkTheme = isSystemInDarkTheme()
@@ -255,7 +257,7 @@ fun StyledSwitchPreview() {
         modifier = Modifier
             .background(backgroundColor)
             .width(100.dp)
-            .height(400.dp),
+            .height(150.dp),
         contentAlignment = Alignment.Center
     ) {
         val checked = remember { mutableStateOf(true) }
@@ -265,7 +267,6 @@ fun StyledSwitchPreview() {
                 checked.value = it
             },
             enabled = true,
-            indpendent = false
         )
 //        LaunchedEffect(Unit) {
 //            delay(1000)
