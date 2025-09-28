@@ -151,7 +151,6 @@ fun HeadTrackingScreen(navController: NavController) {
             }
         ),
     ) { spacerHeight, hazeState ->
-        val backdrop = rememberLayerBackdrop()
         val sharedPreferences = LocalContext.current.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
         var gestureText by remember { mutableStateOf("") }
@@ -161,20 +160,17 @@ fun HeadTrackingScreen(navController: NavController) {
         var shouldExplode by remember { mutableStateOf(false) }
         Column(
             modifier = Modifier
-                .layerBackdrop(backdrop)
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Column (
                 modifier = Modifier
                     .fillMaxWidth()
+                    .hazeSource(state = hazeState)
+                    .layerBackdrop(backdrop)
                     .padding(top = 8.dp)
                     .padding(horizontal = 16.dp)
                     .verticalScroll(scrollState)
-                    .hazeSource(state = hazeState)
-                    .layerBackdrop(
-                        backdrop = backdrop
-                    )
             ) {
                 Spacer(modifier = Modifier.height(spacerHeight))
                 StyledToggle(
