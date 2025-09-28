@@ -31,12 +31,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -84,6 +86,7 @@ import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
 import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.R
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 @Composable
@@ -136,23 +139,26 @@ fun StyledSlider(
 
     val content = @Composable {
         Box(
-            Modifier.fillMaxWidth(if (startIcon == null && endIcon == null) 0.95f else 1f)
-            ) {
+            Modifier
+                .fillMaxWidth(if (startIcon == null && endIcon == null) 0.95f else 1f)
+        ) {
             Box(
                 Modifier
+                    .padding(vertical = 4.dp)
                     .layerBackdrop(sliderBackdrop)
-                .fillMaxWidth()) {
+                    .fillMaxWidth()
+            ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth(1f)
                         .padding(vertical = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     if (startLabel != null || endLabel != null) {
                         Row(
                             modifier = Modifier
-                                .fillMaxWidth(),
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
@@ -174,80 +180,119 @@ fun StyledSlider(
                                 )
                             )
                         }
+                        Spacer(modifier = Modifier.height(12.dp))
                     }
-
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
-                            .then(if (startIcon == null && endIcon == null) Modifier.padding(horizontal = 12.dp) else Modifier),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(0.dp)
+                            .then(if (startIcon == null && endIcon == null) Modifier.padding(horizontal = 8.dp) else Modifier),
                     ) {
-                        if (startIcon != null) {
-                            Text(
-                                text = startIcon,
-                                style = TextStyle(
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Normal,
-                                    color = accentColor,
-                                    fontFamily = FontFamily(Font(R.font.sf_pro))
-                                ),
-                                modifier = Modifier
-                                    .padding(horizontal = 12.dp)
-                                    .onGloballyPositioned {
-                                        startIconWidthState.floatValue = it.size.width.toFloat()
-                                    }
-                            )
-                        }
-                        Box(
-                            Modifier
-                                .weight(1f)
-                                .onSizeChanged { trackWidthState.floatValue = it.width.toFloat() }
-                                .onGloballyPositioned {
-                                    trackPositionState.floatValue =
-                                        it.positionInParent().y + it.size.height / 2f
-                                }
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(0.dp)
                         ) {
-                            Box(
-                                Modifier
-                                    .clip(RoundedCornerShape(28.dp))
-                                    .background(trackColor)
-                                    .height(6f.dp)
-                                    .fillMaxWidth()
-                            )
-
-                            Box(
-                                Modifier
-                                    .clip(RoundedCornerShape(28.dp))
-                                    .background(accentColor)
-                                    .height(6f.dp)
-                                    .layout { measurable, constraints ->
-                                        val placeable = measurable.measure(constraints)
-                                        val fraction = fraction
-                                        val width =
-                                            (fraction * constraints.maxWidth).fastRoundToInt()
-                                        layout(width, placeable.height) {
-                                            placeable.place(0, 0)
+                            if (startIcon != null) {
+                                Text(
+                                    text = startIcon,
+                                    style = TextStyle(
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Normal,
+                                        color = accentColor,
+                                        fontFamily = FontFamily(Font(R.font.sf_pro))
+                                    ),
+                                    modifier = Modifier
+                                        .padding(horizontal = 12.dp)
+                                        .onGloballyPositioned {
+                                            startIconWidthState.floatValue = it.size.width.toFloat()
                                         }
-                                    }
-                            )
-                        }
-                        if (endIcon != null) {
-                            Text(
-                                text = endIcon,
-                                style = TextStyle(
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Normal,
-                                    color = accentColor,
-                                    fontFamily = FontFamily(Font(R.font.sf_pro))
-                                ),
-                                modifier = Modifier
-                                    .padding(horizontal = 12.dp)
+                                )
+                            }
+                            Box(
+                                Modifier
+                                    .weight(1f)
+                                    .onSizeChanged { trackWidthState.floatValue = it.width.toFloat() }
                                     .onGloballyPositioned {
-                                        endIconWidthState.floatValue = it.size.width.toFloat()
+                                        trackPositionState.floatValue =
+                                            it.positionInParent().y + it.size.height / 2f
                                     }
-                            )
+                            ) {
+                                Box(
+                                    Modifier
+                                        .clip(RoundedCornerShape(28.dp))
+                                        .background(trackColor)
+                                        .height(6f.dp)
+                                        .fillMaxWidth()
+                                )
+
+                                Box(
+                                    Modifier
+                                        .clip(RoundedCornerShape(28.dp))
+                                        .background(accentColor)
+                                        .height(6f.dp)
+                                        .layout { measurable, constraints ->
+                                            val placeable = measurable.measure(constraints)
+                                            val fraction = fraction
+                                            val width =
+                                                (fraction * constraints.maxWidth).fastRoundToInt()
+                                            layout(width, placeable.height) {
+                                                placeable.place(0, 0)
+                                            }
+                                        }
+                                )
+                            }
+                            if (endIcon != null) {
+                                Text(
+                                    text = endIcon,
+                                    style = TextStyle(
+                                        fontSize = 18.sp,
+                                        fontWeight = FontWeight.Normal,
+                                        color = accentColor,
+                                        fontFamily = FontFamily(Font(R.font.sf_pro))
+                                    ),
+                                    modifier = Modifier
+                                        .padding(horizontal = 12.dp)
+                                        .onGloballyPositioned {
+                                            endIconWidthState.floatValue = it.size.width.toFloat()
+                                        }
+                                )
+                            }
+                        }
+                        if (snapPoints.isNotEmpty() && startLabel != null && endLabel != null) Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            if (snapPoints.isNotEmpty()) {
+                                val trackWidth = if (startIcon != null && endIcon != null) trackWidthState.floatValue - with(density) { 6.dp.toPx() } * 2 else trackWidthState.floatValue- with(density) { 22.dp.toPx() }
+                                val startOffset =
+                                    if (startIcon != null) startIconWidthState.floatValue + with(
+                                        density
+                                    ) { 34.dp.toPx() } else with(density) { 14.dp.toPx() }
+                                Box(
+                                    Modifier
+                                        .fillMaxWidth()
+                                ) {
+                                    snapPoints.forEach { point ->
+                                        val pointFraction =
+                                            ((point - valueRange.start) / (valueRange.endInclusive - valueRange.start))
+                                                .fastCoerceIn(0f, 1f)
+                                        Box(
+                                            Modifier
+                                                .graphicsLayer {
+                                                    translationX =
+                                                        startOffset + pointFraction * trackWidth - 4.dp.toPx()
+                                                }
+                                                .size(2.dp)
+                                                .background(
+                                                    trackColor,
+                                                    CircleShape
+                                                )
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -257,10 +302,10 @@ fun StyledSlider(
                 Modifier
                     .graphicsLayer {
                         val startOffset =
-                            if (startIcon != null) startIconWidthState.floatValue + with(density) { 24.dp.toPx() } else with(density) { 8.dp.toPx() }
+                            if (startIcon != null) startIconWidthState.floatValue + with(density) { 24.dp.toPx() } else with(density) { 12.dp.toPx() }
                         translationX =
                             startOffset + fraction * trackWidthState.floatValue - size.width / 2f
-                        translationY =  if (startLabel != null || endLabel != null) trackPositionState.floatValue + with(density) { 22.dp.toPx() } + size.height / 2f else trackPositionState.floatValue + with(density) { 4.dp.toPx() }
+                        translationY =  if (startLabel != null || endLabel != null) trackPositionState.floatValue + with(density) { 26.dp.toPx() } + size.height / 2f else trackPositionState.floatValue + with(density) { 8.dp.toPx() }
                     }
                     .draggable(
                         rememberDraggableState { delta ->
@@ -305,7 +350,7 @@ fun StyledSlider(
                                 color = Color.Black.copy(0.05f)
                             )
                         },
-                        layer = {
+                        layerBlock = {
                             val progress = progressAnimation.value
                             val scale = lerp(1f, 1.5f, progress)
                             scaleX = scale
@@ -361,20 +406,20 @@ fun StyledSlider(
                     text = label,
                     style = TextStyle(
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Light,
+                        fontWeight = FontWeight.Bold,
                         color = labelTextColor.copy(alpha = 0.6f),
                         fontFamily = FontFamily(Font(R.font.sf_pro))
                     ),
-                    modifier = Modifier.padding(8.dp)
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 4.dp)
                 )
             }
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(backgroundColor, RoundedCornerShape(14.dp))
+                    .background(backgroundColor, RoundedCornerShape(28.dp))
                     .padding(horizontal = 8.dp, vertical = 0.dp)
-                    .heightIn(min = 55.dp),
+                    .heightIn(min = 58.dp),
                 contentAlignment = Alignment.Center
             ) {
                 content()
@@ -390,7 +435,7 @@ fun StyledSlider(
                         fontFamily = FontFamily(Font(R.font.sf_pro))
                     ),
                     modifier = Modifier
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                        .padding(horizontal = 18.dp, vertical = 4.dp)
                 )
             }
         }
@@ -402,8 +447,8 @@ fun StyledSlider(
 }
 
 private fun snapIfClose(value: Float, points: List<Float>, threshold: Float = 0.05f): Float {
-    val nearest = points.minByOrNull { kotlin.math.abs(it - value) } ?: value
-    return if (kotlin.math.abs(nearest - value) <= threshold) nearest else value
+    val nearest = points.minByOrNull { abs(it - value) } ?: value
+    return if (abs(nearest - value) <= threshold) nearest else value
 }
 
 @Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
@@ -426,9 +471,11 @@ fun StyledSliderPreview() {
                     a.floatValue = it
                 },
                 valueRange = 0f..2f,
+                snapPoints = listOf(0f, 0.5f, 1f, 1.5f, 2f),
+                snapThreshold = 0.1f,
                 independent = true,
                 startLabel = "A",
-                endLabel = "B"
+                endLabel = "B",
             )
         }
     }

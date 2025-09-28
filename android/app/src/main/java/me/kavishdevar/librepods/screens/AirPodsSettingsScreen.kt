@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.highlight.Highlight
@@ -80,7 +81,6 @@ import me.kavishdevar.librepods.composables.BatteryView
 import me.kavishdevar.librepods.composables.CallControlSettings
 import me.kavishdevar.librepods.composables.ConnectionSettings
 import me.kavishdevar.librepods.composables.MicrophoneSettings
-import me.kavishdevar.librepods.composables.NameField
 import me.kavishdevar.librepods.composables.NavigationButton
 import me.kavishdevar.librepods.composables.NoiseControlSettings
 import me.kavishdevar.librepods.composables.PressAndHoldSettings
@@ -199,13 +199,15 @@ fun AirPodsSettingsScreen(dev: BluetoothDevice?, service: AirPodsService,
         }
     }
     val darkMode = isSystemInDarkTheme()
+    val backdrop = rememberLayerBackdrop()
     StyledScaffold(
         title = deviceName.text,
         actionButtons = listOf {
             StyledIconButton(
                 onClick = { navController.navigate("app_settings") },
                 icon = "􀍟",
-                darkMode = darkMode
+                darkMode = darkMode,
+                backdrop = backdrop
             )
         },
         snackbarHostState = snackbarHostState
@@ -216,6 +218,7 @@ fun AirPodsSettingsScreen(dev: BluetoothDevice?, service: AirPodsService,
                     .fillMaxSize()
                     .hazeSource(hazeState)
                     .padding(horizontal = 16.dp)
+                    .layerBackdrop(backdrop)
                     .verticalScroll(rememberScrollState())
             ) {
                 Spacer(modifier = Modifier.height(spacerHeight))
@@ -249,14 +252,14 @@ fun AirPodsSettingsScreen(dev: BluetoothDevice?, service: AirPodsService,
 
                 // Only show name field when not in BLE-only mode
                 if (!bleOnlyMode) {
-                    NameField(
+                    NavigationButton(
+                        to = "rename",
                         name = stringResource(R.string.name),
-                        value = deviceName.text,
-                        navController = navController
+                        currentState = deviceName.text,
+                        navController = navController,
+                        independent = true
                     )
-                }
 
-                if (!bleOnlyMode) {
                     Spacer(modifier = Modifier.height(32.dp))
                     NavigationButton(to = "hearing_aid", stringResource(R.string.hearing_aid), navController)
 
@@ -264,12 +267,12 @@ fun AirPodsSettingsScreen(dev: BluetoothDevice?, service: AirPodsService,
                     NoiseControlSettings(service = service)
 
                     Spacer(modifier = Modifier.height(16.dp))
+                    PressAndHoldSettings(navController = navController)
+
+                    Spacer(modifier = Modifier.height(16.dp))
                     CallControlSettings(hazeState = hazeState)
 
                     // camera control goes here, airpods side is done, i just need to figure out how to listen to app open/close events
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    PressAndHoldSettings(navController = navController)
 
                     Spacer(modifier = Modifier.height(16.dp))
                     AudioSettings(navController = navController)

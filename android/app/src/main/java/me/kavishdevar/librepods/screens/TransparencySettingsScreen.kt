@@ -59,6 +59,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.delay
@@ -95,19 +97,23 @@ fun TransparencySettingsScreen(navController: NavController) {
     val activeTrackColor = if (isDarkTheme) Color(0xFF007AFF) else Color(0xFF3C6DF5)
     val thumbColor = if (isDarkTheme) Color(0xFFFFFFFF) else Color(0xFFFFFFFF)
 
+    val backdrop = rememberLayerBackdrop()
+
     StyledScaffold(
         title = stringResource(R.string.customize_transparency_mode),
         navigationButton = {
             StyledIconButton(
                 onClick = { navController.popBackStack() },
                 icon = "􀯶",
-                darkMode = isDarkTheme
+                darkMode = isDarkTheme,
+                backdrop = backdrop
             )
         }
     ){ spacerHeight, hazeState ->
         Column(
             modifier = Modifier
                 .hazeSource(hazeState)
+                .layerBackdrop(backdrop)
                 .fillMaxSize()
                 .verticalScroll(verticalScrollState)
                 .padding(horizontal = 16.dp),
@@ -154,19 +160,15 @@ fun TransparencySettingsScreen(navController: NavController) {
                 object : (ByteArray) -> Unit {
                     override fun invoke(value: ByteArray) {
                         val parsed = parseTransparencySettingsResponse(value)
-                        if (parsed != null) {
-                            enabled.value = parsed.enabled
-                            amplificationSliderValue.floatValue = parsed.netAmplification
-                            balanceSliderValue.floatValue = parsed.balance
-                            toneSliderValue.floatValue = parsed.leftTone
-                            ambientNoiseReductionSliderValue.floatValue =
-                                parsed.leftAmbientNoiseReduction
-                            conversationBoostEnabled.value = parsed.leftConversationBoost
-                            eq.value = parsed.leftEQ.copyOf()
-                            Log.d(TAG, "Updated transparency settings from notification")
-                        } else {
-                            Log.w(TAG, "Failed to parse transparency settings from notification")
-                        }
+                        enabled.value = parsed.enabled
+                        amplificationSliderValue.floatValue = parsed.netAmplification
+                        balanceSliderValue.floatValue = parsed.balance
+                        toneSliderValue.floatValue = parsed.leftTone
+                        ambientNoiseReductionSliderValue.floatValue =
+                            parsed.leftAmbientNoiseReduction
+                        conversationBoostEnabled.value = parsed.leftConversationBoost
+                        eq.value = parsed.leftEQ.copyOf()
+                        Log.d(TAG, "Updated transparency settings from notification")
                     }
                 }
             }
@@ -251,12 +253,7 @@ fun TransparencySettingsScreen(navController: NavController) {
                         try {
                             val data = attManager.read(ATTHandles.TRANSPARENCY)
                             parsedSettings = parseTransparencySettingsResponse(data = data)
-                            if (parsedSettings != null) {
-                                Log.d(TAG, "Parsed settings on attempt $attempt")
-                                break
-                            } else {
-                                Log.d(TAG, "Parsing returned null on attempt $attempt")
-                            }
+                            Log.d(TAG, "Parsed settings on attempt $attempt")
                         } catch (e: Exception) {
                             Log.w(TAG, "Read attempt $attempt failed: ${e.message}")
                         }
@@ -297,7 +294,7 @@ fun TransparencySettingsScreen(navController: NavController) {
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 StyledSlider(
-                    label = stringResource(R.string.amplification).uppercase(),
+                    label = stringResource(R.string.amplification),
                     valueRange = -1f..1f,
                     mutableFloatState = amplificationSliderValue,
                     onValueChange = {
@@ -309,20 +306,20 @@ fun TransparencySettingsScreen(navController: NavController) {
                 )
 
                 StyledSlider(
-                    label = stringResource(R.string.balance).uppercase(),
+                    label = stringResource(R.string.balance),
                     valueRange = -1f..1f,
                     mutableFloatState = balanceSliderValue,
                     onValueChange = {
                         balanceSliderValue.floatValue = it
                     },
-                    snapPoints = listOf(0f),
+                    snapPoints = listOf(-1f, 0f, 1f),
                     startLabel = stringResource(R.string.left),
                     endLabel = stringResource(R.string.right),
                     independent = true,
                 )
 
                 StyledSlider(
-                    label = stringResource(R.string.tone).uppercase(),
+                    label = stringResource(R.string.tone),
                     valueRange = -1f..1f,
                     mutableFloatState = toneSliderValue,
                     onValueChange = {
@@ -334,7 +331,7 @@ fun TransparencySettingsScreen(navController: NavController) {
                 )
 
                 StyledSlider(
-                    label = stringResource(R.string.ambient_noise_reduction).uppercase(),
+                    label = stringResource(R.string.ambient_noise_reduction),
                     valueRange = 0f..1f,
                     mutableFloatState = ambientNoiseReductionSliderValue,
                     onValueChange = {
@@ -356,20 +353,20 @@ fun TransparencySettingsScreen(navController: NavController) {
             // Only show transparency mode EQ section if SDP offset is available
             if (isSdpOffsetAvailable.value) {
                 Text(
-                    text = stringResource(R.string.equalizer).uppercase(),
+                    text = stringResource(R.string.equalizer),
                     style = TextStyle(
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Light,
+                        fontWeight = FontWeight.Bold,
                         color = textColor.copy(alpha = 0.6f),
                         fontFamily = FontFamily(Font(R.font.sf_pro))
                     ),
-                    modifier = Modifier.padding(8.dp, bottom = 2.dp)
+                    modifier = Modifier.padding(16.dp, bottom = 4.dp)
                 )
 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(backgroundColor, RoundedCornerShape(14.dp))
+                        .background(backgroundColor, RoundedCornerShape(28.dp))
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.SpaceBetween

@@ -73,6 +73,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
 import androidx.navigation.NavController
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -151,6 +153,7 @@ fun Onboarding(navController: NavController, activityContext: Context) {
             isComplete = true
         }
     }
+    val backdrop = rememberLayerBackdrop()
     StyledScaffold(
         title = "Setting Up",
         actionButtons = listOf(
@@ -160,7 +163,8 @@ fun Onboarding(navController: NavController, activityContext: Context) {
                         showSkipDialog = true
                     },
                     icon = "􀊋",
-                    darkMode = isDarkTheme
+                    darkMode = isDarkTheme,
+                    backdrop = backdrop
                 )
             }
         )
@@ -168,6 +172,7 @@ fun Onboarding(navController: NavController, activityContext: Context) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .layerBackdrop(backdrop)
                 .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)

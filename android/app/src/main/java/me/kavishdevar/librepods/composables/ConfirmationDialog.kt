@@ -74,7 +74,6 @@ import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.colorControls
 import com.kyant.backdrop.effects.refraction
 import com.kyant.backdrop.highlight.Highlight
-import com.kyant.backdrop.highlight.HighlightStyle
 import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.utils.inspectDragGestures
@@ -143,7 +142,9 @@ half4 main(float2 coord) {
                     .drawBackdrop(
                         backdrop,
                         { RoundedCornerShape(48f.dp) },
-                        highlight = { Highlight { HighlightStyle.Solid } },
+                        highlight = {
+                            Highlight.SolidDefault
+                        },
                         onDrawSurface = { drawRect(containerColor) },
                         effects = {
                             colorControls(
@@ -153,7 +154,7 @@ half4 main(float2 coord) {
                             blur(if (isLightTheme) 16f.dp.toPx() else 8f.dp.toPx())
                             refraction(24f.dp.toPx(), 48f.dp.toPx(), true)
                         },
-                        layer = {
+                        layerBlock = {
                             val width = size.width
                             val height = size.height
 
@@ -273,16 +274,6 @@ half4 main(float2 coord) {
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Box(
-                        //     Modifier
-                        //         .clip(RoundedCornerShape(50.dp))
-                        //         .background(containerColor.copy(0.2f))
-                        //         .clickable(onClick = onDismiss)
-                        //         .height(48.dp)
-                        //         .weight(1f)
-                        //         .padding(horizontal = 16.dp),
-                        //     contentAlignment = Alignment.Center
-                        // ) {
                         StyledButton(
                             onClick = onDismiss,
                             backdrop = backdrop,
@@ -295,16 +286,6 @@ half4 main(float2 coord) {
                                 style = TextStyle(contentColor, 16.sp)
                             )
                         }
-                        // Box(
-                        //     Modifier
-                        //         .clip(RoundedCornerShape(50.dp))
-                        //         .background(accentColor)
-                        //         .clickable(onClick = onConfirm)
-                        //         .height(48.dp)
-                        //         .weight(1f)
-                        //         .padding(horizontal = 16.dp),
-                        //     contentAlignment = Alignment.Center
-                        // ) {
                         StyledButton(
                             onClick = onConfirm,
                             backdrop = backdrop,

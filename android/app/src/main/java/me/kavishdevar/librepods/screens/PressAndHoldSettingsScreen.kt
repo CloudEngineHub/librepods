@@ -23,6 +23,7 @@ package me.kavishdevar.librepods.screens
 import android.content.Context
 import android.util.Log
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -37,8 +38,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -50,11 +49,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -63,6 +62,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
 import androidx.navigation.NavController
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.composables.StyledIconButton
@@ -76,20 +77,20 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 @Composable
 fun RightDivider() {
     HorizontalDivider(
-        thickness = 1.5.dp,
+        thickness = 1.dp,
         color = Color(0x40888888),
         modifier = Modifier
-            .padding(start = 72.dp)
+            .padding(start = 72.dp, end = 20.dp)
     )
 }
 
 @Composable
 fun RightDividerNoIcon() {
     HorizontalDivider(
-        thickness = 1.5.dp,
+        thickness = 1.dp,
         color = Color(0x40888888),
         modifier = Modifier
-            .padding(start = 20.dp)
+            .padding(start = 20.dp, end = 20.dp)
     )
 }
 
@@ -117,19 +118,22 @@ fun LongPress(navController: NavController, name: String) {
     val longPressActionPref = sharedPreferences.getString(prefKey, StemAction.CYCLE_NOISE_CONTROL_MODES.name)
     Log.d("PressAndHoldSettingsScreen", "Long press action preference ($prefKey): $longPressActionPref")
     var longPressAction by remember { mutableStateOf(StemAction.valueOf(longPressActionPref ?: StemAction.CYCLE_NOISE_CONTROL_MODES.name)) }
+    val backdrop = rememberLayerBackdrop()
     StyledScaffold(
         title = name,
         navigationButton = {
             StyledIconButton(
                 onClick = { navController.popBackStack() },
                 icon = "􀯶",
-                darkMode = isDarkTheme
+                darkMode = isDarkTheme,
+                backdrop = backdrop
             )
         }
     ) { spacerHeight ->
         val backgroundColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
         Column (
           modifier = Modifier
+              .layerBackdrop(backdrop)
               .fillMaxSize()
               .padding(top = 8.dp)
               .padding(horizontal = 16.dp)
@@ -138,11 +142,11 @@ fun LongPress(navController: NavController, name: String) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(backgroundColor, RoundedCornerShape(14.dp)),
+                    .background(backgroundColor, RoundedCornerShape(28.dp)),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 LongPressActionElement(
-                    name = "Noise Control",
+                    name = stringResource(R.string.noise_control),
                     selected = longPressAction == StemAction.CYCLE_NOISE_CONTROL_MODES,
                     onClick = {
                         longPressAction = StemAction.CYCLE_NOISE_CONTROL_MODES
@@ -153,7 +157,7 @@ fun LongPress(navController: NavController, name: String) {
                 )
                 RightDividerNoIcon()
                 LongPressActionElement(
-                    name = "Digital Assistant",
+                    name = stringResource(R.string.digital_assistant),
                     selected = longPressAction == StemAction.DIGITAL_ASSISTANT,
                     onClick = {
                         longPressAction = StemAction.DIGITAL_ASSISTANT
@@ -165,23 +169,25 @@ fun LongPress(navController: NavController, name: String) {
             }
 
             if (longPressAction == StemAction.CYCLE_NOISE_CONTROL_MODES) {
+                Spacer(modifier = Modifier.height(32.dp))
                 Text(
-                    text = "NOISE CONTROL",
+                    text = stringResource(R.string.noise_control),
                     style = TextStyle(
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Light,
+                        fontWeight = FontWeight.Bold,
                         color = textColor.copy(alpha = 0.6f),
                     ),
                     fontFamily = FontFamily(Font(R.font.sf_pro)),
                     modifier = Modifier
-                        .padding(top = 32.dp, bottom = 4.dp)
-                        .padding(horizontal = 8.dp)
+                        .padding(horizontal = 18.dp)
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(backgroundColor, RoundedCornerShape(14.dp)),
+                        .background(backgroundColor, RoundedCornerShape(28.dp)),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     val offListeningModeValue = ServiceManager.getService()!!.aacpManager.controlCommandStatusList.find {
@@ -189,28 +195,28 @@ fun LongPress(navController: NavController, name: String) {
                     }?.value?.takeIf { it.isNotEmpty() }?.get(0)
                     val offListeningMode = offListeningModeValue == 1.toByte()
                     ListeningModeElement(
-                        name = "Off",
+                        name = stringResource(R.string.off),
                         enabled = offListeningMode,
                         resourceId =  R.drawable.noise_cancellation,
                         isFirst = true)
                     if (offListeningMode) RightDivider()
                     ListeningModeElement(
-                        name = "Transparency",
+                        name = stringResource(R.string.transparency),
                         resourceId = R.drawable.transparency,
                         isFirst = !offListeningMode)
                     RightDivider()
                     ListeningModeElement(
-                        name = "Adaptive",
+                        name = stringResource(R.string.adaptive),
                         resourceId = R.drawable.adaptive)
                     RightDivider()
                     ListeningModeElement(
-                        name = "Noise Cancellation",
+                        name = stringResource(R.string.noise_cancellation),
                         resourceId = R.drawable.noise_cancellation,
                         isLast = true)
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Press and hold the stem to cycle between the selected noise control modes.",
+                    text = stringResource(R.string.press_and_hold_noise_control_description),
                     style = TextStyle(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Light,
@@ -218,7 +224,7 @@ fun LongPress(navController: NavController, name: String) {
                         fontFamily = FontFamily(Font(R.font.sf_pro))
                     ),
                     modifier = Modifier
-                        .padding(horizontal = 8.dp)
+                        .padding(horizontal = 18.dp)
                 )
             }
         }
@@ -329,8 +335,8 @@ fun ListeningModeElement(name: String, enabled: Boolean = true, resourceId: Int,
     }
 
     val shape = when {
-        isFirst -> RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)
-        isLast -> RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)
+        isFirst -> RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        isLast -> RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)
         else -> RoundedCornerShape(0.dp)
     }
     var backgroundColor by remember { mutableStateOf(if (darkMode) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)) }
@@ -352,7 +358,7 @@ fun ListeningModeElement(name: String, enabled: Boolean = true, resourceId: Int,
                         },
                     )
                 }
-                .padding(horizontal = 16.dp, vertical = 0.dp),
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -384,24 +390,19 @@ fun ListeningModeElement(name: String, enabled: Boolean = true, resourceId: Int,
                     fontFamily = FontFamily(Font(R.font.sf_pro)),
                 )
             }
-            Checkbox(
-                checked = checked.value,
-                onCheckedChange = { valueChanged() },
-                colors = CheckboxDefaults.colors().copy(
-                    checkedCheckmarkColor = Color(0xFF007AFF),
-                    uncheckedCheckmarkColor = Color.Transparent,
-                    checkedBoxColor = Color.Transparent,
-                    uncheckedBoxColor = Color.Transparent,
-                    checkedBorderColor = Color.Transparent,
-                    uncheckedBorderColor = Color.Transparent,
-                    disabledBorderColor = Color.Transparent,
-                    disabledCheckedBoxColor = Color.Transparent,
-                    disabledUncheckedBoxColor = Color.Transparent,
-                    disabledUncheckedBorderColor = Color.Transparent
+
+            val floatAnimateState by animateFloatAsState(
+                targetValue = if (checked.value) 1f else 0f,
+                animationSpec = tween(durationMillis = 300)
+            )
+            Text(
+                text = "􀆅",
+                style = TextStyle(
+                    fontSize = 20.sp,
+                    fontFamily = FontFamily(Font(R.font.sf_pro)),
+                    color = Color(0xFF007AFF).copy(alpha = floatAnimateState),
                 ),
-                modifier = Modifier
-                    .height(24.dp)
-                    .scale(1.5f),
+                modifier = Modifier.padding(end = 4.dp)
             )
         }
     }
@@ -417,15 +418,15 @@ fun LongPressActionElement(
 ) {
     val darkMode = isSystemInDarkTheme()
     val shape = when {
-        isFirst -> RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)
-        isLast -> RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)
+        isFirst -> RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        isLast -> RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)
         else -> RoundedCornerShape(0.dp)
     }
     var backgroundColor by remember { mutableStateOf(if (darkMode) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)) }
     val animatedBackgroundColor by animateColorAsState(targetValue = backgroundColor, animationSpec = tween(durationMillis = 500))
     Row(
         modifier = Modifier
-            .height(48.dp)
+            .height(55.dp)
             .background(animatedBackgroundColor, shape)
             .pointerInput(Unit) {
                 detectTapGestures(
@@ -437,7 +438,7 @@ fun LongPressActionElement(
                     }
                 )
             }
-            .padding(horizontal = 16.dp, vertical = 0.dp),
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -449,24 +450,18 @@ fun LongPressActionElement(
                 .weight(1f)
                 .padding(start = 4.dp)
         )
-        Checkbox(
-            checked = selected,
-            onCheckedChange = { onClick() },
-            colors = CheckboxDefaults.colors().copy(
-                checkedCheckmarkColor = Color(0xFF007AFF),
-                uncheckedCheckmarkColor = Color.Transparent,
-                checkedBoxColor = Color.Transparent,
-                uncheckedBoxColor = Color.Transparent,
-                checkedBorderColor = Color.Transparent,
-                uncheckedBorderColor = Color.Transparent,
-                disabledBorderColor = Color.Transparent,
-                disabledCheckedBoxColor = Color.Transparent,
-                disabledUncheckedBoxColor = Color.Transparent,
-                disabledUncheckedBorderColor = Color.Transparent
+        val floatAnimateState by animateFloatAsState(
+            targetValue = if (selected) 1f else 0f,
+            animationSpec = tween(durationMillis = 300)
+        )
+        Text(
+            text = "􀆅",
+            style = TextStyle(
+                fontSize = 20.sp,
+                fontFamily = FontFamily(Font(R.font.sf_pro)),
+                color = Color(0xFF007AFF).copy(alpha = floatAnimateState)
             ),
-            modifier = Modifier
-                .height(24.dp)
-                .scale(1.5f),
+            modifier = Modifier.padding(end = 4.dp)
         )
     }
 }

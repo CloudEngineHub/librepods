@@ -181,10 +181,10 @@ fun NoiseControlSettings(
     }
 
     Text(
-        text = stringResource(R.string.noise_control).uppercase(),
+        text = stringResource(R.string.noise_control),
         style = TextStyle(
             fontSize = 14.sp,
-            fontWeight = FontWeight.Light,
+            fontWeight = FontWeight.Bold,
             color = textColor.copy(alpha = 0.6f),
         ),
         modifier = Modifier.padding(8.dp, bottom = 2.dp)
@@ -241,7 +241,7 @@ fun NoiseControlSettings(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(60.dp)
-                    .background(backgroundColor, RoundedCornerShape(14.dp))
+                    .background(backgroundColor, RoundedCornerShape(28.dp))
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth()
@@ -334,7 +334,7 @@ fun NoiseControlSettings(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(3.dp)
-                            .background(selectedBackground, RoundedCornerShape(12.dp))
+                            .background(selectedBackground, RoundedCornerShape(26.dp))
                     )
                 }
 
@@ -400,7 +400,6 @@ fun NoiseControlSettings(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 4.dp)
                     .padding(top = 4.dp)
             ) {
                 if (offListeningMode.value) {
@@ -408,7 +407,6 @@ fun NoiseControlSettings(
                         text = stringResource(R.string.off),
                         style = TextStyle(fontSize = 12.sp, color = textColor),
                         textAlign = TextAlign.Center,
-                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -416,21 +414,18 @@ fun NoiseControlSettings(
                     text = stringResource(R.string.transparency),
                     style = TextStyle(fontSize = 12.sp, color = textColor),
                     textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
                     text = stringResource(R.string.adaptive),
                     style = TextStyle(fontSize = 12.sp, color = textColor),
                     textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
                     text = stringResource(R.string.noise_cancellation),
                     style = TextStyle(fontSize = 12.sp, color = textColor),
                     textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
             }

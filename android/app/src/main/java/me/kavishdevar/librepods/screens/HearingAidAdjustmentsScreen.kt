@@ -41,6 +41,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
@@ -77,14 +79,15 @@ fun HearingAidAdjustmentsScreen(@Suppress("unused") navController: NavController
     val attManager = ServiceManager.getService()?.attManager ?: throw IllegalStateException("ATTManager not available")
 
     val aacpManager = remember { ServiceManager.getService()?.aacpManager }
-
+    val backdrop = rememberLayerBackdrop()
     StyledScaffold(
         title = stringResource(R.string.adjustments),
         navigationButton = {
             StyledIconButton(
                 onClick = { navController.popBackStack() },
                 icon = "􀯶",
-                darkMode = isDarkTheme
+                darkMode = isDarkTheme,
+                backdrop = backdrop
             )
         }
     ) { spacerHeight ->
@@ -92,6 +95,7 @@ fun HearingAidAdjustmentsScreen(@Suppress("unused") navController: NavController
             modifier = Modifier
                 .hazeSource(hazeState)
                 .fillMaxSize()
+                .layerBackdrop(backdrop)
                 .verticalScroll(verticalScrollState)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -282,7 +286,7 @@ fun HearingAidAdjustmentsScreen(@Suppress("unused") navController: NavController
             }
 
             StyledSlider(
-                label = stringResource(R.string.amplification).uppercase(),
+                label = stringResource(R.string.amplification),
                 valueRange = -1f..1f,
                 mutableFloatState = amplificationSliderValue,
                 onValueChange = {
@@ -301,20 +305,20 @@ fun HearingAidAdjustmentsScreen(@Suppress("unused") navController: NavController
             )
 
             StyledSlider(
-                label = stringResource(R.string.balance).uppercase(),
+                label = stringResource(R.string.balance),
                 valueRange = -1f..1f,
                 mutableFloatState = balanceSliderValue,
                 onValueChange = {
                     balanceSliderValue.floatValue = it
                 },
-                snapPoints = listOf(0f),
+                snapPoints = listOf(-1f, 0f, 1f),
                 startLabel = stringResource(R.string.left),
                 endLabel = stringResource(R.string.right),
                 independent = true,
             )
 
             StyledSlider(
-                label = stringResource(R.string.tone).uppercase(),
+                label = stringResource(R.string.tone),
                 valueRange = -1f..1f,
                 mutableFloatState = toneSliderValue,
                 onValueChange = {
@@ -326,7 +330,7 @@ fun HearingAidAdjustmentsScreen(@Suppress("unused") navController: NavController
             )
 
             StyledSlider(
-                label = stringResource(R.string.ambient_noise_reduction).uppercase(),
+                label = stringResource(R.string.ambient_noise_reduction),
                 valueRange = 0f..1f,
                 mutableFloatState = ambientNoiseReductionSliderValue,
                 onValueChange = {

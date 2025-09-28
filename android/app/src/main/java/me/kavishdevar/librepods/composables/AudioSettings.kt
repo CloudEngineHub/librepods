@@ -51,22 +51,22 @@ fun AudioSettings(navController: NavController) {
     val textColor = if (isDarkTheme) Color.White else Color.Black
 
     Text(
-        text = stringResource(R.string.audio).uppercase(),
+        text = stringResource(R.string.audio),
         style = TextStyle(
             fontSize = 14.sp,
-            fontWeight = FontWeight.Light,
+            fontWeight = FontWeight.Bold,
             color = textColor.copy(alpha = 0.6f)
         ),
-        modifier = Modifier.padding(8.dp, bottom = 2.dp)
+        modifier = Modifier.padding(16.dp, bottom = 4.dp)
     )
 
     val backgroundColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
 
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(28.dp))
             .fillMaxWidth()
-            .background(backgroundColor, RoundedCornerShape(14.dp))
+            .background(backgroundColor, RoundedCornerShape(28.dp))
             .padding(top = 2.dp)
     ) {
 
@@ -76,11 +76,12 @@ fun AudioSettings(navController: NavController) {
             controlCommandIdentifier = AACPManager.Companion.ControlCommandIdentifiers.ADAPTIVE_VOLUME_CONFIG,
             independent = false
         )
+
         HorizontalDivider(
-            thickness = 1.5.dp,
+            thickness = 1.dp,
             color = Color(0x40888888),
             modifier = Modifier
-                .padding(start = 12.dp, end = 0.dp)
+                .padding(horizontal= 12.dp)
         )
 
         StyledToggle(
@@ -90,10 +91,10 @@ fun AudioSettings(navController: NavController) {
             independent = false
         )
         HorizontalDivider(
-            thickness = 1.5.dp,
+            thickness = 1.dp,
             color = Color(0x40888888),
             modifier = Modifier
-                .padding(start = 12.dp, end = 0.dp)
+                .padding(horizontal= 12.dp)
         )
 
         StyledToggle(
@@ -103,10 +104,10 @@ fun AudioSettings(navController: NavController) {
             independent = false
         )
         HorizontalDivider(
-            thickness = 1.5.dp,
+            thickness = 1.dp,
             color = Color(0x40888888),
             modifier = Modifier
-                .padding(start = 12.dp, end = 0.dp)
+                .padding(horizontal= 12.dp)
         )
 
         NavigationButton(

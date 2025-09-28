@@ -230,7 +230,7 @@ fun StyledDropdown(
 
                             if (index != options.lastIndex) {
                                 HorizontalDivider(
-                                    thickness = 1.5.dp,
+                                    thickness = 1.dp,
                                     color = Color(0x40888888),
                                     modifier = Modifier.padding(start = 12.dp, end = 0.dp)
                                 )

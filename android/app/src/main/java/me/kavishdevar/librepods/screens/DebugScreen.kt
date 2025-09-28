@@ -40,14 +40,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -78,6 +75,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.delay
@@ -325,14 +324,15 @@ fun DebugScreen(navController: NavController) {
     }
 
     val isDarkTheme = isSystemInDarkTheme()
-
+    val backdrop = rememberLayerBackdrop()
     StyledScaffold(
         title = "Debug",
         navigationButton = {
             StyledIconButton(
                 onClick = { navController.popBackStack() },
                 icon = "􀯶",
-                darkMode = isDarkTheme
+                darkMode = isDarkTheme,
+                backdrop = backdrop
             )
         },
         actionButtons = listOf(
@@ -344,6 +344,7 @@ fun DebugScreen(navController: NavController) {
                     },
                     icon = "􀈑",
                     darkMode = isDarkTheme,
+                    backdrop = backdrop
                 )
             }
         ),
@@ -353,6 +354,7 @@ fun DebugScreen(navController: NavController) {
                 .fillMaxSize()
                 .hazeSource(hazeState)
                 .navigationBarsPadding()
+                .layerBackdrop(backdrop)
                 .padding(horizontal = 16.dp)
         ) {
             Spacer(modifier = Modifier.height(spacerHeight))
@@ -391,11 +393,13 @@ fun DebugScreen(navController: NavController) {
                             )
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = if (isSent) Icons.AutoMirrored.Filled.KeyboardArrowLeft else Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                    contentDescription = null,
-                                    tint = if (isSent) Color.Green else Color.Red,
-                                    modifier = Modifier.size(24.dp)
+                                Text(
+                                    text = if (isSent) "􀆉" else "􀆊",
+                                    style = TextStyle(
+                                        fontSize = 16.sp,
+                                        fontFamily = FontFamily(Font(R.font.sf_pro)),
+                                        color = if (isSent) Color(0xFF4CD964) else Color(0xFFFF3B30)
+                                    ),
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Column {

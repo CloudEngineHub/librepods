@@ -32,11 +32,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -52,12 +50,16 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
 import androidx.navigation.NavController
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.composables.StyledIconButton
@@ -81,19 +83,23 @@ fun RenameScreen(navController: NavController) {
         name.value = name.value.copy(selection = TextRange(name.value.text.length))
     }
 
+    val backdrop = rememberLayerBackdrop()
+
     StyledScaffold(
         title = stringResource(R.string.name),
         navigationButton = {
             StyledIconButton(
                 onClick = { navController.popBackStack() },
                 icon = "􀯶",
-                darkMode = isDarkTheme
+                darkMode = isDarkTheme,
+                backdrop = backdrop
             )
         },
     ) { spacerHeight ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .layerBackdrop(backdrop)
                 .padding(horizontal = 16.dp)
         ) {
             Spacer(modifier = Modifier.height(spacerHeight))
@@ -105,10 +111,10 @@ fun RenameScreen(navController: NavController) {
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(55.dp)
+                    .height(58.dp)
                     .background(
                         backgroundColor,
-                        RoundedCornerShape(14.dp)
+                        RoundedCornerShape(28.dp)
                     )
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
@@ -120,8 +126,9 @@ fun RenameScreen(navController: NavController) {
                         ServiceManager.getService()?.setName(it.text)
                     },
                     textStyle = TextStyle(
-                        color = textColor,
                         fontSize = 16.sp,
+                        color = textColor,
+                        fontFamily = FontFamily(Font(R.font.sf_pro))
                     ),
                     singleLine = true,
                     cursorBrush = SolidColor(cursorColor),
@@ -138,14 +145,15 @@ fun RenameScreen(navController: NavController) {
                             IconButton(
                                 onClick = {
                                     name.value = TextFieldValue("")
-                                    sharedPreferences.edit { putString("name", "") }
-                                    ServiceManager.getService()?.setName("")
                                 }
                             ) {
-                                Icon(
-                                    Icons.Default.Clear,
-                                    contentDescription = "Clear",
-                                    tint = if (isDarkTheme) Color.White else Color.Black
+                                Text(
+                                    text = "􀁡",
+                                    style = TextStyle(
+                                      fontSize = 16.sp,
+                                        fontFamily = FontFamily(Font(R.font.sf_pro)),
+                                        color = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
+                                    ),
                                 )
                             }
                         }

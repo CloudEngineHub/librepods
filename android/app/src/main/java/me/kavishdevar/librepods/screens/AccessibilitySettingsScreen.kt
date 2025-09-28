@@ -40,20 +40,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -79,6 +75,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
@@ -149,13 +147,16 @@ fun AccessibilitySettingsScreen(navController: NavController) {
         }
     }
 
+    val backdrop = rememberLayerBackdrop()
+
     StyledScaffold(
         title = stringResource(R.string.accessibility),
         navigationButton = {
             StyledIconButton(
                 onClick = { navController.popBackStack() },
                 icon = "􀯶",
-                darkMode = isDarkTheme
+                darkMode = isDarkTheme,
+                backdrop = backdrop
             )
         },
     ) { spacerHeight, hazeState ->
@@ -163,6 +164,7 @@ fun AccessibilitySettingsScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState)
+                .layerBackdrop(backdrop)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -370,7 +372,7 @@ fun AccessibilitySettingsScreen(navController: NavController) {
             )
 
             StyledToggle(
-                title = stringResource(R.string.noise_control).uppercase(),
+                title = stringResource(R.string.noise_control),
                 label = stringResource(R.string.noise_cancellation_single_airpod),
                 description = stringResource(R.string.noise_cancellation_single_airpod_description),
                 controlCommandIdentifier = AACPManager.Companion.ControlCommandIdentifiers.ONE_BUD_ANC_MODE,
@@ -392,7 +394,7 @@ fun AccessibilitySettingsScreen(navController: NavController) {
             }
 
             StyledSlider(
-                label = stringResource(R.string.tone_volume).uppercase(),
+                label = stringResource(R.string.tone_volume),
                 description = stringResource(R.string.tone_volume_description),
                 mutableFloatState = toneVolumeValue,
                 onValueChange = {
@@ -403,6 +405,12 @@ fun AccessibilitySettingsScreen(navController: NavController) {
                 startIcon = "\uDBC0\uDEA1",
                 endIcon = "\uDBC0\uDEA9",
                 independent = true
+            )
+
+            StyledToggle(
+                label = stringResource(R.string.volume_control),
+                description = stringResource(R.string.volume_control_description),
+                controlCommandIdentifier = AACPManager.Companion.ControlCommandIdentifiers.VOLUME_SWIPE_MODE,
             )
 
             DropdownMenuComponent(
@@ -425,10 +433,10 @@ fun AccessibilitySettingsScreen(navController: NavController) {
 
             if (!hearingAidEnabled.value&& isSdpOffsetAvailable.value) {
                 Text(
-                    text = stringResource(R.string.apply_eq_to).uppercase(),
+                    text = stringResource(R.string.apply_eq_to),
                     style = TextStyle(
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Light,
+                        fontWeight = FontWeight.Bold,
                         color = textColor.copy(alpha = 0.6f),
                         fontFamily = FontFamily(Font(R.font.sf_pro))
                     ),
@@ -437,12 +445,12 @@ fun AccessibilitySettingsScreen(navController: NavController) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(backgroundColor, RoundedCornerShape(14.dp))
+                        .background(backgroundColor, RoundedCornerShape(28.dp))
                         .padding(vertical = 0.dp)
                 ) {
                     val darkModeLocal = isSystemInDarkTheme()
 
-                    val phoneShape = RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)
+                    val phoneShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
                     var phoneBackgroundColor by remember {
                         mutableStateOf(
                             if (darkModeLocal) Color(
@@ -500,11 +508,11 @@ fun AccessibilitySettingsScreen(navController: NavController) {
                     }
 
                     HorizontalDivider(
-                        thickness = 1.5.dp,
+                        thickness = 1.dp,
                         color = Color(0x40888888)
                     )
 
-                    val mediaShape = RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)
+                    val mediaShape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)
                     var mediaBackgroundColor by remember {
                         mutableStateOf(
                             if (darkModeLocal) Color(
@@ -565,7 +573,7 @@ fun AccessibilitySettingsScreen(navController: NavController) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(backgroundColor, RoundedCornerShape(14.dp))
+                        .background(backgroundColor, RoundedCornerShape(28.dp))
                         .padding(12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -686,15 +694,18 @@ private fun DropdownMenuComponent(
                 )
                 .background(
                     if (independent) (if (isSystemInDarkTheme()) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)) else Color.Transparent,
-                    if (independent) RoundedCornerShape(14.dp) else RoundedCornerShape(0.dp)
+                    if (independent) RoundedCornerShape(28.dp) else RoundedCornerShape(0.dp)
                 )
-                .clip(if (independent) RoundedCornerShape(14.dp) else RoundedCornerShape(0.dp))
+                then(
+                    if (independent) Modifier.padding(horizontal = 4.dp) else Modifier
+                )
+                .clip(if (independent) RoundedCornerShape(28.dp) else RoundedCornerShape(0.dp))
         ){
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 12.dp, end = 12.dp)
-                    .height(55.dp)
+                    .height(58.dp)
                     .pointerInput(Unit) {
                         detectTapGestures { offset ->
                             val now = System.currentTimeMillis()
@@ -766,7 +777,7 @@ private fun DropdownMenuComponent(
                                 color = textColor.copy(alpha = 0.6f),
                                 fontFamily = FontFamily(Font(R.font.sf_pro))
                             ),
-                            modifier = Modifier.padding(bottom = 2.dp)
+                            modifier = Modifier.padding(16.dp, top = 0.dp, bottom = 2.dp)
                         )
                     }
                 }
@@ -780,14 +791,21 @@ private fun DropdownMenuComponent(
                     ) {
                         Text(
                             text = selectedOption,
-                            fontSize = 16.sp,
-                            color = textColor.copy(alpha = 0.8f)
+                            style = TextStyle(
+                                fontSize = 16.sp,
+                                color = textColor.copy(alpha = 0.8f),
+                                fontFamily = FontFamily(Font(R.font.sf_pro))
+                            )
                         )
-                        Icon(
-                            Icons.Default.KeyboardArrowDown,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = textColor.copy(alpha = 0.6f)
+                        Text(
+                            text = "􀆏",
+                            style = TextStyle(
+                                fontSize = 16.sp,
+                                color = textColor.copy(alpha = 0.6f),
+                                fontFamily = FontFamily(Font(R.font.sf_pro))
+                            ),
+                            modifier = Modifier
+                                .padding(start = 6.dp)
                         )
                     }
 
@@ -816,7 +834,7 @@ private fun DropdownMenuComponent(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
+                    .padding(horizontal = 16.dp)
                     .background(if (isSystemInDarkTheme()) Color(0xFF000000) else Color(0xFFF2F2F7))
             ){
                 Text(

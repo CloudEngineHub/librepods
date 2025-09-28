@@ -36,6 +36,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -94,6 +96,7 @@ fun AdaptiveStrengthScreen(navController: NavController) {
         }
     }
 
+    val backdrop = rememberLayerBackdrop()
 
     StyledScaffold(
         title = stringResource(R.string.customize_adaptive_audio),
@@ -101,19 +104,21 @@ fun AdaptiveStrengthScreen(navController: NavController) {
             StyledIconButton(
                 onClick = { navController.popBackStack() },
                 icon = "􀯶",
-                darkMode = isDarkTheme
+                darkMode = isDarkTheme,
+                backdrop = backdrop
             )
         }
     ) { spacerHeight ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .layerBackdrop(backdrop)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Spacer(modifier = Modifier.height(spacerHeight))
             StyledSlider(
-                label = stringResource(R.string.customize_adaptive_audio).uppercase(),
+                label = stringResource(R.string.customize_adaptive_audio),
                 mutableFloatState = sliderValue,
                 onValueChange = {
                     sliderValue.floatValue = it

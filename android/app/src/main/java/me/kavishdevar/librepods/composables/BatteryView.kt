@@ -146,7 +146,7 @@ fun BatteryView(service: AirPodsService, preview: Boolean = false) {
                 contentDescription = stringResource(R.string.buds),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp)
+                    .padding(8.dp)
             )
             if (
                 leftCharging == rightCharging &&
@@ -202,7 +202,7 @@ fun BatteryView(service: AirPodsService, preview: Boolean = false) {
                 contentDescription = stringResource(R.string.case_alt),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp)
+                    .padding(8.dp)
             )
                 if (caseLevel > 0 || case?.status != BatteryStatus.DISCONNECTED) {
                     BatteryIndicator(

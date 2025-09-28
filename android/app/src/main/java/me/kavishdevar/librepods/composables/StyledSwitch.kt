@@ -48,8 +48,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.layer.CompositingStrategy
@@ -68,7 +71,7 @@ import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.refractionWithDispersion
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 @Composable
@@ -76,16 +79,17 @@ fun StyledSwitch(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
     enabled: Boolean = true,
+    indpendent: Boolean = true,
 ) {
     val isDarkTheme = isSystemInDarkTheme()
 
     val onColor = if (enabled) Color(0xFF34C759) else if (isDarkTheme) Color(0xFF5B5B5E) else Color(0xFFD1D1D6)
     val offColor = if (enabled) if (isDarkTheme) Color(0xFF5B5B5E) else Color(0xFFD1D1D6) else if (isDarkTheme) Color(0xFF5B5B5E) else Color(0xFFD1D1D6)
 
-    val trackWidth = 70.dp
-    val trackHeight = 31.dp
-    val thumbHeight = 27.dp
-    val thumbWidth = 36.dp
+    val trackWidth = 64.dp
+    val trackHeight = 28.dp
+    val thumbHeight = 24.dp
+    val thumbWidth = 39.dp
 
     val backdrop = rememberLayerBackdrop()
     val switchBackdrop = rememberLayerBackdrop()
@@ -97,18 +101,23 @@ fun StyledSwitch(
     val density = LocalDensity.current
     val animationScope = rememberCoroutineScope()
     val progressAnimationSpec = spring(0.5f, 300f, 0.001f)
-    val colorAnimationSpec = tween<Color>(300, easing = FastOutSlowInEasing)
+    val colorAnimationSpec = tween<Color>(200, easing = FastOutSlowInEasing)
     val progressAnimation = remember { Animatable(0f) }
     val innerShadowLayer = rememberGraphicsLayer().apply {
         compositingStrategy = CompositingStrategy.Offscreen
     }
     val animatedTrackColor = remember { Animatable(if (checked) onColor else offColor) }
-
     LaunchedEffect(checked) {
-        val targetColor = if (checked) onColor else offColor
-        animatedTrackColor.animateTo(targetColor, colorAnimationSpec)
-        val targetFrac = if (checked) 1f else 0f
-        animatedFraction.animateTo(targetFrac, progressAnimationSpec)
+        coroutineScope {
+            launch {
+                val targetColor = if (checked) onColor else offColor
+                animatedTrackColor.animateTo(targetColor, colorAnimationSpec)
+            }
+            launch {
+                val targetFrac = if (checked) 1f else 0f
+                animatedFraction.animateTo(targetFrac, progressAnimationSpec)
+            }
+        }
     }
 
     Box(
@@ -136,7 +145,7 @@ fun StyledSwitch(
                 .then(if (enabled) Modifier.draggable(
                     rememberDraggableState { delta ->
                         if (trackWidthPx.floatValue > 0f) {
-                            val newFraction = (animatedFraction.value + delta / trackWidthPx.floatValue).fastCoerceIn(0f, 1f)
+                            val newFraction = (animatedFraction.value + delta / trackWidthPx.floatValue).fastCoerceIn(-0.3f, 1.3f)
                             animationScope.launch {
                                 animatedFraction.snapTo(newFraction)
                             }
@@ -155,10 +164,12 @@ fun StyledSwitch(
                     },
                     onDragStopped = {
                         animationScope.launch {
-                            progressAnimation.animateTo(0f, progressAnimationSpec)
                             val snappedFraction = if (animatedFraction.value >= 0.5f) 1f else 0f
-                            animatedFraction.animateTo(snappedFraction, progressAnimationSpec)
                             onCheckedChange(snappedFraction >= 0.5f)
+                            coroutineScope {
+                                launch { progressAnimation.animateTo(0f, progressAnimationSpec) }
+                                launch { animatedFraction.animateTo(snappedFraction, progressAnimationSpec) }
+                            }
                         }
                     }
                 ) else Modifier)
@@ -175,11 +186,26 @@ fun StyledSwitch(
                             color = Color.Black.copy(0.05f)
                         )
                     },
-                    layer = {
+                    layerBlock = {
                         val progress = progressAnimation.value
-                        val scale = lerp(1f, 2f, progress)
+                        val scale = lerp(1f, 1.6f, progress)
                         scaleX = scale
                         scaleY = scale
+                    },
+                    onDrawBackdrop = { drawScope ->
+                        drawIntoCanvas { canvas ->
+                            canvas.save()
+                            canvas.drawRect(0f, 0f, size.width, size.height, Paint().apply {
+                                color = if (indpendent) {
+                                    if (isDarkTheme) Color(0xFF000000) else Color(0xFFF2F2F7)
+                                } else {
+                                    if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
+                                }
+                            })
+                            scale(0.75f) {
+                                drawScope()
+                            }
+                        }
                     },
                     onDrawSurface = {
                         val progress = progressAnimation.value.fastCoerceIn(0f, 1f)
@@ -224,12 +250,12 @@ fun StyledSwitch(
 @Composable
 fun StyledSwitchPreview() {
     val isDarkTheme = isSystemInDarkTheme()
-    val backgroundColor = if (isDarkTheme) Color(0xFF000000) else Color(0xFFF2F2F7)
+    val backgroundColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
     Box(
         modifier = Modifier
             .background(backgroundColor)
             .width(100.dp)
-            .height(100.dp),
+            .height(400.dp),
         contentAlignment = Alignment.Center
     ) {
         val checked = remember { mutableStateOf(true) }
@@ -238,13 +264,14 @@ fun StyledSwitchPreview() {
             onCheckedChange = {
                 checked.value = it
             },
-            enabled = true
+            enabled = true,
+            indpendent = false
         )
-        LaunchedEffect(Unit) {
-            delay(1000)
-            checked.value = false
-            delay(1000)
-            checked.value = true
-        }
+//        LaunchedEffect(Unit) {
+//            delay(1000)
+//            checked.value = false
+//            delay(1000)
+//            checked.value = true
+//        }
     }
 }

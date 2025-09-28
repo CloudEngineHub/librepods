@@ -32,12 +32,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -57,6 +53,8 @@ import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -76,19 +74,19 @@ fun CallControlSettings(hazeState: HazeState) {
     val backgroundColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
 
     Text(
-        text = stringResource(R.string.call_controls).uppercase(),
+        text = stringResource(R.string.call_controls),
         style = TextStyle(
             fontSize = 14.sp,
-            fontWeight = FontWeight.Light,
+            fontWeight = FontWeight.Bold,
             color = textColor.copy(alpha = 0.6f)
         ),
-        modifier = Modifier.padding(8.dp, bottom = 2.dp)
+        modifier = Modifier.padding(16.dp, bottom = 4.dp)
     )
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(backgroundColor, RoundedCornerShape(14.dp))
+            .background(backgroundColor, RoundedCornerShape(28.dp))
             .padding(top = 2.dp)
     ) {
         val service = ServiceManager.getService()!!
@@ -169,8 +167,8 @@ fun CallControlSettings(hazeState: HazeState) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 12.dp, end = 12.dp)
-                    .height(50.dp),
+                    .padding(horizontal = 16.dp)
+                    .height(58.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -187,17 +185,17 @@ fun CallControlSettings(hazeState: HazeState) {
                 )
             }
             HorizontalDivider(
-                thickness = 1.5.dp,
+                thickness = 1.dp,
                 color = Color(0x40888888),
                 modifier = Modifier
-                    .padding(start = 12.dp, end = 0.dp)
+                    .padding(horizontal = 12.dp)
             )
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 12.dp, end = 12.dp)
-                    .height(50.dp)
+                    .padding(horizontal = 16.dp)
+                    .height(58.dp)
                     .pointerInput(Unit) {
                         detectTapGestures { offset ->
                             val now = System.currentTimeMillis()
@@ -276,14 +274,21 @@ fun CallControlSettings(hazeState: HazeState) {
                     ) {
                         Text(
                             text = singlePressAction,
-                            fontSize = 16.sp,
-                            color = textColor.copy(alpha = 0.8f)
+                            style = TextStyle(
+                                fontSize = 16.sp,
+                                color = textColor.copy(alpha = 0.8f),
+                                fontFamily = FontFamily(Font(R.font.sf_pro))
+                            )
                         )
-                        Icon(
-                            Icons.Default.KeyboardArrowDown,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = textColor.copy(alpha = 0.6f)
+                        Text(
+                            text = "􀆏",
+                            style = TextStyle(
+                                fontSize = 16.sp,
+                                color = textColor.copy(alpha = 0.6f),
+                                fontFamily = FontFamily(Font(R.font.sf_pro))
+                            ),
+                            modifier = Modifier
+                                .padding(start = 6.dp)
                         )
                     }
 
@@ -315,17 +320,17 @@ fun CallControlSettings(hazeState: HazeState) {
                 }
             }
             HorizontalDivider(
-                thickness = 1.5.dp,
+                thickness = 1.dp,
                 color = Color(0x40888888),
                 modifier = Modifier
-                    .padding(start = 12.dp, end = 0.dp)
+                    .padding(horizontal = 12.dp)
             )
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 12.dp, end = 12.dp)
-                    .height(50.dp)
+                    .padding(horizontal = 16.dp)
+                    .height(58.dp)
                     .pointerInput(Unit) {
                         detectTapGestures { offset ->
                             val now = System.currentTimeMillis()
@@ -404,14 +409,21 @@ fun CallControlSettings(hazeState: HazeState) {
                     ) {
                         Text(
                             text = doublePressAction,
-                            fontSize = 16.sp,
-                            color = textColor.copy(alpha = 0.8f)
+                            style = TextStyle(
+                                fontSize = 16.sp,
+                                color = textColor.copy(alpha = 0.8f),
+                                fontFamily = FontFamily(Font(R.font.sf_pro))
+                            )
                         )
-                        Icon(
-                            Icons.Default.KeyboardArrowDown,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = textColor.copy(alpha = 0.6f)
+                        Text(
+                            text = "􀆏",
+                            style = TextStyle(
+                                fontSize = 16.sp,
+                                color = textColor.copy(alpha = 0.6f),
+                                fontFamily = FontFamily(Font(R.font.sf_pro))
+                            ),
+                            modifier = Modifier
+                                .padding(start = 6.dp)
                         )
                     }
 

@@ -20,6 +20,7 @@
 
 package me.kavishdevar.librepods.composables
 
+import android.content.Context.MODE_PRIVATE
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Column
@@ -34,11 +35,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import kotlin.io.encoding.ExperimentalEncodingApi
-import android.content.Context.MODE_PRIVATE
-import me.kavishdevar.librepods.composables.StyledToggle
-import me.kavishdevar.librepods.utils.AACPManager
 import me.kavishdevar.librepods.R
+import me.kavishdevar.librepods.utils.AACPManager
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 @Composable
 fun ConnectionSettings() {
@@ -48,7 +47,7 @@ fun ConnectionSettings() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(backgroundColor, RoundedCornerShape(14.dp))
+            .background(backgroundColor, RoundedCornerShape(28.dp))
             .padding(top = 2.dp)
     ) {
         StyledToggle(
@@ -59,10 +58,10 @@ fun ConnectionSettings() {
             independent = false
         )
         HorizontalDivider(
-            thickness = 1.5.dp,
+            thickness = 1.dp,
             color = Color(0x40888888),
             modifier = Modifier
-                .padding(start = 12.dp, end = 0.dp)
+                .padding(horizontal= 12.dp)
         )
 
         StyledToggle(

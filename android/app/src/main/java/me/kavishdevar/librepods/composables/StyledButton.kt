@@ -74,7 +74,8 @@ fun StyledButton(
     isInteractive: Boolean = true,
     tint: Color = Color.Unspecified,
     surfaceColor: Color = Color.Unspecified,
-    content: @Composable RowScope.() -> Unit
+    maxScale: Float = 0.1f,
+    content: @Composable RowScope.() -> Unit,
 ) {
     val animationScope = rememberCoroutineScope()
     val progressAnimation = remember { Animatable(0f) }
@@ -113,7 +114,7 @@ half4 main(float2 coord) {
                         effects = {
                             blur(16f.dp.toPx())
                         },
-                        layer = null,
+                        layerBlock = null,
                         onDrawSurface = {
                             if (tint.isSpecified) {
                                 drawRect(tint, blendMode = BlendMode.Hue)
@@ -147,12 +148,11 @@ half4 main(float2 coord) {
                             blur(2f.dp.toPx())
                             refraction(12f.dp.toPx(), 24f.dp.toPx())
                         },
-                        layer = {
+                        layerBlock = {
                             val width = size.width
                             val height = size.height
 
                             val progress = progressAnimation.value
-                            val maxScale = 0.1f
                             val scale = lerp(1f, 1f + maxScale, progress)
 
                             val maxOffset = size.minDimension

@@ -85,6 +85,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.Dispatchers
@@ -208,6 +210,8 @@ fun TroubleshootingScreen(navController: NavController) {
         showBottomSheet = true
     }
 
+    val backdrop = rememberLayerBackdrop()
+
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -217,28 +221,30 @@ fun TroubleshootingScreen(navController: NavController) {
                 StyledIconButton(
                     onClick = { navController.popBackStack() },
                     icon = "􀯶",
-                    darkMode = isDarkTheme
+                    darkMode = isDarkTheme,
+                    backdrop = backdrop
                 )
             }
         ){ spacerHeight, hazeState ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(scrollState)
+                    .layerBackdrop(backdrop)
                     .hazeSource(state = hazeState)
+                    .verticalScroll(scrollState)
                     .padding(horizontal = 16.dp)
             ) {
                 Spacer(modifier = Modifier.height(spacerHeight))
 
                 Text(
-                    text = stringResource(R.string.saved_logs).uppercase(),
+                    text = stringResource(R.string.saved_logs),
                     style = TextStyle(
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Light,
+                        fontWeight = FontWeight.Bold,
                         color = textColor.copy(alpha = 0.6f),
                         fontFamily = FontFamily(Font(R.font.sf_pro))
                     ),
-                    modifier = Modifier.padding(8.dp, bottom = 2.dp, top = 8.dp)
+                    modifier = Modifier.padding(16.dp, bottom = 4.dp, top = 8.dp)
                 )
 
                 Spacer(modifier = Modifier.height(2.dp))
@@ -249,7 +255,7 @@ fun TroubleshootingScreen(navController: NavController) {
                             .fillMaxWidth()
                             .background(
                                 backgroundColor,
-                                RoundedCornerShape(14.dp)
+                                RoundedCornerShape(28.dp)
                             )
                             .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -266,7 +272,7 @@ fun TroubleshootingScreen(navController: NavController) {
                             .fillMaxWidth()
                             .background(
                                 backgroundColor,
-                                RoundedCornerShape(14.dp)
+                                RoundedCornerShape(28.dp)
                             )
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
@@ -372,14 +378,14 @@ fun TroubleshootingScreen(navController: NavController) {
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
-                            text = "TROUBLESHOOTING STEPS".uppercase(),
+                            text = "TROUBLESHOOTING STEPS",
                             style = TextStyle(
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Light,
                                 color = textColor.copy(alpha = 0.6f),
                                 fontFamily = FontFamily(Font(R.font.sf_pro))
                             ),
-                            modifier = Modifier.padding(8.dp, bottom = 2.dp, top = 8.dp)
+                            modifier = Modifier.padding(16.dp, bottom = 2.dp, top = 8.dp)
                         )
 
                         Spacer(modifier = Modifier.height(2.dp))
@@ -389,7 +395,7 @@ fun TroubleshootingScreen(navController: NavController) {
                                 .fillMaxWidth()
                                 .background(
                                     backgroundColor,
-                                    RoundedCornerShape(14.dp)
+                                    RoundedCornerShape(28.dp)
                                 )
                                 .padding(16.dp)
                         ) {

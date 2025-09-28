@@ -42,10 +42,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -87,12 +84,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.R
+import me.kavishdevar.librepods.composables.StyledButton
 import me.kavishdevar.librepods.composables.StyledIconButton
 import me.kavishdevar.librepods.composables.StyledScaffold
 import me.kavishdevar.librepods.composables.StyledToggle
@@ -116,18 +116,19 @@ fun HeadTrackingScreen(navController: NavController) {
         }
     }
     val isDarkTheme = isSystemInDarkTheme()
-    val backgroundColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
+    if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
     val textColor = if (isDarkTheme) Color.White else Color.Black
 
     val scrollState = rememberScrollState()
-
+    val backdrop = rememberLayerBackdrop()
     StyledScaffold (
         title = stringResource(R.string.head_tracking),
         navigationButton = {
             StyledIconButton(
                 onClick = { navController.popBackStack() },
                 icon = "􀯶",
-                darkMode = isDarkTheme
+                darkMode = isDarkTheme,
+                backdrop = backdrop
             )
         },
         actionButtons = listOf(
@@ -144,72 +145,95 @@ fun HeadTrackingScreen(navController: NavController) {
                         }
                     },
                     icon = if (isActive) "􀊅" else "􀊃",
-                    darkMode = isDarkTheme
+                    darkMode = isDarkTheme,
+                    backdrop = backdrop
                 )
             }
         ),
     ) { spacerHeight, hazeState ->
-        Column (
+        val backdrop = rememberLayerBackdrop()
+        val sharedPreferences = LocalContext.current.getSharedPreferences("settings", Context.MODE_PRIVATE)
+
+        var gestureText by remember { mutableStateOf("") }
+        val coroutineScope = rememberCoroutineScope()
+
+        var lastClickTime by remember { mutableLongStateOf(0L) }
+        var shouldExplode by remember { mutableStateOf(false) }
+        Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 8.dp)
-                .padding(horizontal = 16.dp)
-                .verticalScroll(scrollState)
-                .hazeSource(state = hazeState)
+                .layerBackdrop(backdrop)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(spacerHeight))
-            val sharedPreferences =
-                LocalContext.current.getSharedPreferences("settings", Context.MODE_PRIVATE)
+            Column (
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(scrollState)
+                    .hazeSource(state = hazeState)
+                    .layerBackdrop(
+                        backdrop = backdrop
+                    )
+            ) {
+                Spacer(modifier = Modifier.height(spacerHeight))
+                StyledToggle(
+                    label = "Head Gestures",
+                    sharedPreferences = sharedPreferences,
+                    sharedPreferenceKey = "head_gestures",
+                )
 
-            var gestureText by remember { mutableStateOf("") }
-            val coroutineScope = rememberCoroutineScope()
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    stringResource(R.string.head_gestures_details),
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal,
+                        fontFamily = FontFamily(Font(R.font.sf_pro)),
+                        color = textColor.copy(0.6f)
+                    ),
+                    modifier = Modifier.padding(start = 4.dp)
+                )
 
-            StyledToggle(
-                label = "Head Gestures",
-                sharedPreferences = sharedPreferences,
-                sharedPreferenceKey = "head_gestures",
-            )
-            
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                stringResource(R.string.head_gestures_details),
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Normal,
-                    fontFamily = FontFamily(Font(R.font.sf_pro)),
-                    color = textColor.copy(0.6f)
-                ),
-                modifier = Modifier.padding(start = 4.dp)
-            )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "Head Orientation",
+                    style = TextStyle(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        fontFamily = FontFamily(Font(R.font.sf_pro)),
+                        color = textColor
+                    ),
+                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp, top = 8.dp)
+                )
+                HeadVisualization()
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "Head Orientation",
-                style = TextStyle(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium,
-                    fontFamily = FontFamily(Font(R.font.sf_pro)),
-                    color = textColor
-                ),
-                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp, top = 8.dp)
-            )
-            HeadVisualization()
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "Velocity",
+                    style = TextStyle(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Medium,
+                        fontFamily = FontFamily(Font(R.font.sf_pro)),
+                        color = textColor
+                    ),
+                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp, top = 8.dp)
+                )
+                AccelerationPlot()
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "Velocity",
-                style = TextStyle(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium,
-                    fontFamily = FontFamily(Font(R.font.sf_pro)),
-                    color = textColor
-                ),
-                modifier = Modifier.padding(start = 4.dp, bottom = 8.dp, top = 8.dp)
-            )
-            AccelerationPlot()
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Button (
+                LaunchedEffect(gestureText) {
+                    if (gestureText.isNotEmpty()) {
+                        lastClickTime = System.currentTimeMillis()
+                        delay(3000)
+                        if (System.currentTimeMillis() - lastClickTime >= 3000) {
+                            shouldExplode = true
+                        }
+                    }
+                }
+            }
+            StyledButton(
                 onClick = {
                     gestureText = "Shake your head or nod!"
                     coroutineScope.launch {
@@ -217,13 +241,9 @@ fun HeadTrackingScreen(navController: NavController) {
                         gestureText = if (accepted) "\"Yes\" gesture detected." else "\"No\" gesture detected."
                     }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(55.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = backgroundColor
-                ),
-                shape = RoundedCornerShape(8.dp)
+                backdrop = backdrop,
+                modifier = Modifier.fillMaxWidth(0.75f),
+                maxScale = 0.05f
             ) {
                 Text(
                     "Test Head Gestures",
@@ -235,19 +255,6 @@ fun HeadTrackingScreen(navController: NavController) {
                     ),
                 )
             }
-            var lastClickTime by remember { mutableLongStateOf(0L) }
-            var shouldExplode by remember { mutableStateOf(false) }
-
-            LaunchedEffect(gestureText) {
-                if (gestureText.isNotEmpty()) {
-                    lastClickTime = System.currentTimeMillis()
-                    delay(3000)
-                    if (System.currentTimeMillis() - lastClickTime >= 3000) {
-                        shouldExplode = true
-                    }
-                }
-            }
-
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.padding(top = 12.dp, bottom = 24.dp)

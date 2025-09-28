@@ -26,7 +26,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -37,7 +36,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -47,25 +45,21 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -79,13 +73,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.edit
 import androidx.navigation.NavController
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
 import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.R
+import me.kavishdevar.librepods.composables.NavigationButton
 import me.kavishdevar.librepods.composables.StyledIconButton
 import me.kavishdevar.librepods.composables.StyledScaffold
-import me.kavishdevar.librepods.composables.StyledSwitch
+import me.kavishdevar.librepods.composables.StyledSlider
+import me.kavishdevar.librepods.composables.StyledToggle
 import me.kavishdevar.librepods.utils.AACPManager
 import me.kavishdevar.librepods.utils.RadareOffsetFinder
 import kotlin.io.encoding.Base64
@@ -102,13 +100,13 @@ fun AppSettingsScreen(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
-    var showResetDialog by remember { mutableStateOf(false) }
-    var showIrkDialog by remember { mutableStateOf(false) }
-    var showEncKeyDialog by remember { mutableStateOf(false) }
-    var irkValue by remember { mutableStateOf("") }
-    var encKeyValue by remember { mutableStateOf("") }
-    var irkError by remember { mutableStateOf<String?>(null) }
-    var encKeyError by remember { mutableStateOf<String?>(null) }
+    val showResetDialog = remember { mutableStateOf(false) }
+    val showIrkDialog = remember { mutableStateOf(false) }
+    val showEncKeyDialog = remember { mutableStateOf(false) }
+    val irkValue = remember { mutableStateOf("") }
+    val encKeyValue = remember { mutableStateOf("") }
+    val irkError = remember { mutableStateOf<String?>(null) }
+    val encKeyError = remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
         val savedIrk = sharedPreferences.getString(AACPManager.Companion.ProximityKeyType.IRK.name, null)
@@ -117,9 +115,9 @@ fun AppSettingsScreen(navController: NavController) {
         if (savedIrk != null) {
             try {
                 val decoded = Base64.decode(savedIrk)
-                irkValue = decoded.joinToString("") { "%02x".format(it) }
+                irkValue.value = decoded.joinToString("") { "%02x".format(it) }
             } catch (e: Exception) {
-                irkValue = ""
+                irkValue.value = ""
                 e.printStackTrace()
             }
         }
@@ -127,59 +125,58 @@ fun AppSettingsScreen(navController: NavController) {
         if (savedEncKey != null) {
             try {
                 val decoded = Base64.decode(savedEncKey)
-                encKeyValue = decoded.joinToString("") { "%02x".format(it) }
+                encKeyValue.value = decoded.joinToString("") { "%02x".format(it) }
             } catch (e: Exception) {
-                encKeyValue = ""
+                encKeyValue.value = ""
                 e.printStackTrace()
             }
         }
     }
 
-    var showPhoneBatteryInWidget by remember {
+    val showPhoneBatteryInWidget = remember {
         mutableStateOf(sharedPreferences.getBoolean("show_phone_battery_in_widget", true))
     }
-    var conversationalAwarenessPauseMusicEnabled by remember {
+    val conversationalAwarenessPauseMusicEnabled = remember {
         mutableStateOf(sharedPreferences.getBoolean("conversational_awareness_pause_music", false))
     }
-    var relativeConversationalAwarenessVolumeEnabled by remember {
+    val relativeConversationalAwarenessVolumeEnabled = remember {
         mutableStateOf(sharedPreferences.getBoolean("relative_conversational_awareness_volume", true))
     }
-    var openDialogForControlling by remember {
+    val openDialogForControlling = remember {
         mutableStateOf(sharedPreferences.getString("qs_click_behavior", "dialog") == "dialog")
     }
-    var disconnectWhenNotWearing by remember {
+    val disconnectWhenNotWearing = remember {
         mutableStateOf(sharedPreferences.getBoolean("disconnect_when_not_wearing", false))
     }
 
-    var takeoverWhenDisconnected by remember {
+    val takeoverWhenDisconnected = remember {
         mutableStateOf(sharedPreferences.getBoolean("takeover_when_disconnected", true))
     }
-    var takeoverWhenIdle by remember {
+    val takeoverWhenIdle = remember {
         mutableStateOf(sharedPreferences.getBoolean("takeover_when_idle", true))
     }
-    var takeoverWhenMusic by remember {
+    val takeoverWhenMusic = remember {
         mutableStateOf(sharedPreferences.getBoolean("takeover_when_music", false))
     }
-    var takeoverWhenCall by remember {
+    val takeoverWhenCall = remember {
         mutableStateOf(sharedPreferences.getBoolean("takeover_when_call", true))
     }
 
-    var takeoverWhenRingingCall by remember {
+    val takeoverWhenRingingCall = remember {
         mutableStateOf(sharedPreferences.getBoolean("takeover_when_ringing_call", true))
     }
-    var takeoverWhenMediaStart by remember {
+    val takeoverWhenMediaStart = remember {
         mutableStateOf(sharedPreferences.getBoolean("takeover_when_media_start", true))
     }
 
-    var useAlternateHeadTrackingPackets by remember {
+    val useAlternateHeadTrackingPackets = remember {
         mutableStateOf(sharedPreferences.getBoolean("use_alternate_head_tracking_packets", false))
     }
 
-    var bleOnlyMode by remember {
+    val bleOnlyMode = remember {
         mutableStateOf(sharedPreferences.getBoolean("ble_only_mode", false))
     }
 
-    // Ensure the default value is properly set if not exists
     LaunchedEffect(Unit) {
         if (!sharedPreferences.contains("ble_only_mode")) {
             sharedPreferences.edit { putBoolean("ble_only_mode", false) }
@@ -191,10 +188,12 @@ fun AppSettingsScreen(navController: NavController) {
         return hexPattern.matches(input)
     }
 
-    var isProcessingSdp by remember { mutableStateOf(false) }
-    var actAsAppleDevice by remember { mutableStateOf(false) }
+    val isProcessingSdp = remember { mutableStateOf(false) }
+    val actAsAppleDevice = remember { mutableStateOf(false) }
 
-    BackHandler(enabled = isProcessingSdp) {}
+    BackHandler(enabled = isProcessingSdp.value) {}
+
+    val backdrop = rememberLayerBackdrop()
 
     StyledScaffold(
         title = stringResource(R.string.app_settings),
@@ -202,15 +201,17 @@ fun AppSettingsScreen(navController: NavController) {
             StyledIconButton(
                 onClick = { navController.popBackStack() },
                 icon = "􀯶",
-                darkMode = isDarkTheme
+                darkMode = isDarkTheme,
+                backdrop = backdrop
             )
         }
     ) { spacerHeight, hazeState ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
+                .layerBackdrop(backdrop)
                 .hazeSource(state = hazeState)
+                .verticalScroll(scrollState)
                 .padding(horizontal = 16.dp)
         ) {
             Spacer(modifier = Modifier.height(spacerHeight))
@@ -219,17 +220,33 @@ fun AppSettingsScreen(navController: NavController) {
             val backgroundColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
             val textColor = if (isDarkTheme) Color.White else Color.Black
 
-            Spacer(modifier = Modifier.height(8.dp))
+            StyledToggle(
+                title = stringResource(R.string.widget),
+                label = stringResource(R.string.show_phone_battery_in_widget),
+                description = stringResource(R.string.show_phone_battery_in_widget_description),
+                checkedState = showPhoneBatteryInWidget,
+                sharedPreferenceKey = "show_phone_battery_in_widget",
+                sharedPreferences = sharedPreferences,
+            )
+
+            StyledToggle(
+                title = stringResource(R.string.connection_mode),
+                label = stringResource(R.string.ble_only_mode),
+                description = stringResource(R.string.ble_only_mode_description),
+                checkedState = bleOnlyMode,
+                sharedPreferenceKey = "ble_only_mode",
+                sharedPreferences = sharedPreferences,
+            )
 
             Text(
-                text = stringResource(R.string.widget).uppercase(),
+                text = stringResource(R.string.conversational_awareness),
                 style = TextStyle(
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.Light,
+                    fontWeight = FontWeight.Bold,
                     color = textColor.copy(alpha = 0.6f),
                     fontFamily = FontFamily(Font(R.font.sf_pro))
                 ),
-                modifier = Modifier.padding(8.dp, bottom = 2.dp, top = 8.dp)
+                modifier = Modifier.padding(16.dp, bottom = 2.dp, top = 24.dp)
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -239,770 +256,251 @@ fun AppSettingsScreen(navController: NavController) {
                     .fillMaxWidth()
                     .background(
                         backgroundColor,
-                        RoundedCornerShape(14.dp)
+                        RoundedCornerShape(28.dp)
                     )
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .padding(vertical = 4.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-                            showPhoneBatteryInWidget = !showPhoneBatteryInWidget
-                            sharedPreferences.edit { putBoolean("show_phone_battery_in_widget", showPhoneBatteryInWidget)}
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 8.dp)
-                            .padding(end = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.show_phone_battery_in_widget),
-                            fontSize = 16.sp,
-                            color = textColor
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.show_phone_battery_in_widget_description),
-                            fontSize = 14.sp,
-                            color = textColor.copy(0.6f),
-                            lineHeight = 16.sp,
-                        )
-                    }
-
-                    StyledSwitch(
-                        checked = showPhoneBatteryInWidget,
-                        onCheckedChange = {
-                            showPhoneBatteryInWidget = it
-                            sharedPreferences.edit { putBoolean("show_phone_battery_in_widget", it)}
-                        }
-                    )
-                }
-            }
-
-            Text(
-                text = stringResource(R.string.connection_mode).uppercase(),
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Light,
-                    color = textColor.copy(alpha = 0.6f),
-                    fontFamily = FontFamily(Font(R.font.sf_pro))
-                ),
-                modifier = Modifier.padding(8.dp, bottom = 2.dp, top = 24.dp)
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Column (
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        backgroundColor,
-                        RoundedCornerShape(14.dp)
-                    )
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-                            bleOnlyMode = !bleOnlyMode
-                            sharedPreferences.edit { putBoolean("ble_only_mode", bleOnlyMode)}
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 8.dp)
-                            .padding(end = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.ble_only_mode),
-                            fontSize = 16.sp,
-                            color = textColor
-                        )
-                        Text(
-                            text = stringResource(R.string.ble_only_mode_description),
-                            fontSize = 13.sp,
-                            color = textColor.copy(0.6f),
-                            lineHeight = 16.sp,
-                        )
-                    }
-
-                    StyledSwitch(
-                        checked = bleOnlyMode,
-                        onCheckedChange = {
-                            bleOnlyMode = it
-                            sharedPreferences.edit { putBoolean("ble_only_mode", it)}
-                        }
-                    )
-                }
-            }
-
-            Text(
-                text = stringResource(R.string.conversational_awareness).uppercase(),
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Light,
-                    color = textColor.copy(alpha = 0.6f),
-                    fontFamily = FontFamily(Font(R.font.sf_pro))
-                ),
-                modifier = Modifier.padding(8.dp, bottom = 2.dp, top = 24.dp)
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Column (
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        backgroundColor,
-                        RoundedCornerShape(14.dp)
-                    )
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-            ) {
-                val sliderValue = remember { mutableFloatStateOf(0f) }
-                LaunchedEffect(sliderValue) {
-                    if (sharedPreferences.contains("conversational_awareness_volume")) {
-                        sliderValue.floatValue = sharedPreferences.getInt("conversational_awareness_volume", 43).toFloat()
-                    }
-                }
-
                 fun updateConversationalAwarenessPauseMusic(enabled: Boolean) {
-                    conversationalAwarenessPauseMusicEnabled = enabled
+                    conversationalAwarenessPauseMusicEnabled.value = enabled
                     sharedPreferences.edit { putBoolean("conversational_awareness_pause_music", enabled)}
                 }
 
                 fun updateRelativeConversationalAwarenessVolume(enabled: Boolean) {
-                    relativeConversationalAwarenessVolumeEnabled = enabled
+                    relativeConversationalAwarenessVolumeEnabled.value = enabled
                     sharedPreferences.edit { putBoolean("relative_conversational_awareness_volume", enabled)}
                 }
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-                            updateConversationalAwarenessPauseMusic(!conversationalAwarenessPauseMusicEnabled)
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 8.dp)
-                            .padding(end = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.conversational_awareness_pause_music),
-                            fontSize = 16.sp,
-                            color = textColor
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.conversational_awareness_pause_music_description),
-                            fontSize = 14.sp,
-                            color = textColor.copy(0.6f),
-                            lineHeight = 16.sp,
-                        )
-                    }
-
-                    StyledSwitch(
-                        checked = conversationalAwarenessPauseMusicEnabled,
-                        onCheckedChange = {
-                            updateConversationalAwarenessPauseMusic(it)
-                        },
-                    )
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-                            updateRelativeConversationalAwarenessVolume(!relativeConversationalAwarenessVolumeEnabled)
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 8.dp)
-                            .padding(end = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.relative_conversational_awareness_volume),
-                            fontSize = 16.sp,
-                            color = textColor
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.relative_conversational_awareness_volume_description),
-                            fontSize = 14.sp,
-                            color = textColor.copy(0.6f),
-                            lineHeight = 16.sp,
-                        )
-                    }
-
-                    StyledSwitch(
-                        checked = relativeConversationalAwarenessVolumeEnabled,
-                        onCheckedChange = {
-                            updateRelativeConversationalAwarenessVolume(it)
-                        }
-                    )
-                }
-
-                Text(
-                    text = stringResource(R.string.conversational_awareness_volume),
-                    fontSize = 16.sp,
-                    color = textColor,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                StyledToggle(
+                    label = stringResource(R.string.conversational_awareness_pause_music),
+                    description = stringResource(R.string.conversational_awareness_pause_music_description),
+                    checkedState = conversationalAwarenessPauseMusicEnabled,
+                    onCheckedChange = { updateConversationalAwarenessPauseMusic(it) },
+                    independent = false
                 )
 
-                val trackColor = if (isDarkTheme) Color(0xFFB3B3B3) else Color(0xFFD9D9D9)
-                val activeTrackColor = if (isDarkTheme) Color(0xFF007AFF) else Color(0xFF3C6DF5)
-                val thumbColor = if (isDarkTheme) Color(0xFFFFFFFF) else Color(0xFFFFFFFF)
-
-                Slider(
-                    value = sliderValue.floatValue,
-                    onValueChange = {
-                        sliderValue.floatValue = it
-                        sharedPreferences.edit { putInt("conversational_awareness_volume", it.toInt())}
-                    },
-                    valueRange = 10f..85f,
-                    onValueChangeFinished = {
-                        sliderValue.floatValue = sliderValue.floatValue.roundToInt().toFloat()
-                    },
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = Color(0x40888888),
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(36.dp)
-                        .padding(vertical = 4.dp),
-                    colors = SliderDefaults.colors(
-                        thumbColor = thumbColor,
-                        activeTrackColor = activeTrackColor,
-                        inactiveTrackColor = trackColor,
-                    ),
-                    thumb = {
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .shadow(4.dp, CircleShape)
-                                .background(thumbColor, CircleShape)
-                        )
-                    },
-                    track = {
-                        Box (
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(12.dp),
-                            contentAlignment = Alignment.CenterStart
-                        )
-                        {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(4.dp)
-                                    .background(trackColor, RoundedCornerShape(4.dp))
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(((sliderValue.floatValue - 10) * 100) /7500)
-                                    .height(4.dp)
-                                    .background(if (conversationalAwarenessPauseMusicEnabled) trackColor else activeTrackColor, RoundedCornerShape(4.dp))
-                            )
-                        }
-                    }
+                        .padding(horizontal = 12.dp)
                 )
 
+                StyledToggle(
+                    label = stringResource(R.string.relative_conversational_awareness_volume),
+                    description = stringResource(R.string.relative_conversational_awareness_volume_description),
+                    checkedState = relativeConversationalAwarenessVolumeEnabled,
+                    onCheckedChange = { updateRelativeConversationalAwarenessVolume(it) },
+                    independent = false
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            val conversationalAwarenessVolume = remember { mutableFloatStateOf(sharedPreferences.getInt("conversational_awareness_volume", 43).toFloat()) }
+            LaunchedEffect(conversationalAwarenessVolume.floatValue) {
+                sharedPreferences.edit { putInt("conversational_awareness_volume", conversationalAwarenessVolume.floatValue.roundToInt()) }
+            }
+
+            StyledSlider(
+                label = stringResource(R.string.conversational_awareness_volume),
+                mutableFloatState = conversationalAwarenessVolume,
+                valueRange = 10f..85f,
+                startLabel = "10%",
+                endLabel = "85%",
+                onValueChange = { newValue -> conversationalAwarenessVolume.floatValue = newValue },
+                independent = true
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            StyledToggle(
+                title = stringResource(R.string.quick_settings_tile),
+                label = stringResource(R.string.open_dialog_for_controlling),
+                description = stringResource(R.string.open_dialog_for_controlling_description),
+                checkedState = openDialogForControlling,
+                onCheckedChange = {
+                    openDialogForControlling.value = it
+                    sharedPreferences.edit { putString("qs_click_behavior", if (it) "dialog" else "activity") }
+                },
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            StyledToggle(
+                title = stringResource(R.string.ear_detection),
+                label = stringResource(R.string.disconnect_when_not_wearing),
+                description = stringResource(R.string.disconnect_when_not_wearing_description),
+                checkedState = disconnectWhenNotWearing,
+                sharedPreferenceKey = "disconnect_when_not_wearing",
+                sharedPreferences = sharedPreferences,
+            )
+
+            Text(
+                text = stringResource(R.string.takeover_airpods_state),
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor.copy(alpha = 0.6f),
+                    fontFamily = FontFamily(Font(R.font.sf_pro))
+                ),
+                modifier = Modifier.padding(16.dp, bottom = 2.dp, top = 24.dp)
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        backgroundColor,
+                        RoundedCornerShape(28.dp)
+                    )
+                    .padding(vertical = 4.dp)
+            ) {
+                StyledToggle(
+                    label = stringResource(R.string.takeover_disconnected),
+                    description = stringResource(R.string.takeover_disconnected_desc),
+                    checkedState = takeoverWhenDisconnected,
+                    onCheckedChange = {
+                        takeoverWhenDisconnected.value = it
+                        sharedPreferences.edit { putBoolean("takeover_when_disconnected", it)}
+                    },
+                    independent = false
+                )
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = Color(0x40888888),
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp)
+                )
+
+                StyledToggle(
+                    label = stringResource(R.string.takeover_idle),
+                    description = stringResource(R.string.takeover_idle_desc),
+                    checkedState = takeoverWhenIdle,
+                    onCheckedChange = {
+                        takeoverWhenIdle.value = it
+                        sharedPreferences.edit { putBoolean("takeover_when_idle", it)}
+                    },
+                    independent = false
+                )
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = Color(0x40888888),
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp)
+                )
+
+                StyledToggle(
+                    label = stringResource(R.string.takeover_music),
+                    description = stringResource(R.string.takeover_music_desc),
+                    checkedState = takeoverWhenMusic,
+                    onCheckedChange = {
+                        takeoverWhenMusic.value = it
+                        sharedPreferences.edit { putBoolean("takeover_when_music", it)}
+                    },
+                    independent = false
+                )
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = Color(0x40888888),
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp)
+                )
+
+                StyledToggle(
+                    label = stringResource(R.string.takeover_call),
+                    description = stringResource(R.string.takeover_call_desc),
+                    checkedState = takeoverWhenCall,
+                    onCheckedChange = {
+                        takeoverWhenCall.value = it
+                        sharedPreferences.edit { putBoolean("takeover_when_call", it)}
+                    },
+                    independent = false
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = stringResource(R.string.takeover_phone_state),
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor.copy(alpha = 0.6f),
+                    fontFamily = FontFamily(Font(R.font.sf_pro))
+                ),
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        backgroundColor,
+                        RoundedCornerShape(28.dp)
+                    )
+                    .padding(vertical = 4.dp)
+            ){
+                StyledToggle(
+                    label = stringResource(R.string.takeover_ringing_call),
+                    description = stringResource(R.string.takeover_ringing_call_desc),
+                    checkedState = takeoverWhenRingingCall,
+                    onCheckedChange = {
+                        takeoverWhenRingingCall.value = it
+                        sharedPreferences.edit { putBoolean("takeover_when_ringing_call", it)}
+                    },
+                    independent = false
+                )
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = Color(0x40888888),
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp)
+                )
+
+                StyledToggle(
+                    label = stringResource(R.string.takeover_media_start),
+                    description = stringResource(R.string.takeover_media_start_desc),
+                    checkedState = takeoverWhenMediaStart,
+                    onCheckedChange = {
+                        takeoverWhenMediaStart.value = it
+                        sharedPreferences.edit { putBoolean("takeover_when_media_start", it)}
+                    },
+                    independent = false
+                )
+            }
+
+            Text(
+                text = stringResource(R.string.advanced_options),
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textColor.copy(alpha = 0.6f),
+                    fontFamily = FontFamily(Font(R.font.sf_pro))
+                ),
+                modifier = Modifier.padding(16.dp, bottom = 2.dp, top = 24.dp)
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        backgroundColor,
+                        RoundedCornerShape(28.dp)
+                    )
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+            ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "10%",
-                        style = TextStyle(
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Light,
-                            color = textColor.copy(alpha = 0.7f)
+                        .clickable (
+                            onClick = { showIrkDialog.value = true },
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
                         ),
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                    Text(
-                        text = "85%",
-                        style = TextStyle(
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Light,
-                            color = textColor.copy(alpha = 0.7f)
-                        ),
-                        modifier = Modifier.padding(end = 4.dp)
-                    )
-                }
-            }
-
-            Text(
-                text = stringResource(R.string.quick_settings_tile).uppercase(),
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Light,
-                    color = textColor.copy(alpha = 0.6f),
-                    fontFamily = FontFamily(Font(R.font.sf_pro))
-                ),
-                modifier = Modifier.padding(8.dp, bottom = 2.dp, top = 24.dp)
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        backgroundColor,
-                        RoundedCornerShape(14.dp)
-                    )
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-            ) {
-                fun updateQsClickBehavior(enabled: Boolean) {
-                    openDialogForControlling = enabled
-                    sharedPreferences.edit { putString("qs_click_behavior", if (enabled) "dialog" else "cycle")}
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-                            updateQsClickBehavior(!openDialogForControlling)
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 8.dp)
-                            .padding(end = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.open_dialog_for_controlling),
-                            fontSize = 16.sp,
-                            color = textColor
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.open_dialog_for_controlling_description),
-                            fontSize = 14.sp,
-                            color = textColor.copy(0.6f),
-                            lineHeight = 16.sp,
-                        )
-                    }
-
-                    StyledSwitch(
-                        checked = openDialogForControlling,
-                        onCheckedChange = {
-                            updateQsClickBehavior(it)
-                        }
-                    )
-                }
-            }
-
-            Text(
-                text = stringResource(R.string.ear_detection).uppercase(),
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Light,
-                    color = textColor.copy(alpha = 0.6f),
-                    fontFamily = FontFamily(Font(R.font.sf_pro))
-                ),
-                modifier = Modifier.padding(8.dp, bottom = 2.dp, top = 24.dp)
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        backgroundColor,
-                        RoundedCornerShape(14.dp)
-                    )
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-            ) {
-                fun updateDisconnectWhenNotWearing(enabled: Boolean) {
-                    disconnectWhenNotWearing = enabled
-                    sharedPreferences.edit { putBoolean("disconnect_when_not_wearing", enabled)}
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-                            updateDisconnectWhenNotWearing(!disconnectWhenNotWearing)
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 8.dp)
-                            .padding(end = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.disconnect_when_not_wearing),
-                            fontSize = 16.sp,
-                            color = textColor
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.disconnect_when_not_wearing_description),
-                            fontSize = 14.sp,
-                            color = textColor.copy(0.6f),
-                            lineHeight = 16.sp,
-                        )
-                    }
-
-                    StyledSwitch(
-                        checked = disconnectWhenNotWearing,
-                        onCheckedChange = {
-                            updateDisconnectWhenNotWearing(it)
-                        }
-                    )
-                }
-            }
-
-            Text(
-                text = stringResource(R.string.takeover_header).uppercase(),
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Light,
-                    color = textColor.copy(alpha = 0.6f),
-                    fontFamily = FontFamily(Font(R.font.sf_pro))
-                ),
-                modifier = Modifier.padding(8.dp, bottom = 2.dp, top = 24.dp)
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        backgroundColor,
-                        RoundedCornerShape(14.dp)
-                    )
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.takeover_airpods_state),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = textColor,
-                    modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-                            takeoverWhenDisconnected = !takeoverWhenDisconnected
-                            sharedPreferences.edit { putBoolean("takeover_when_disconnected", takeoverWhenDisconnected)}
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 8.dp)
-                            .padding(end = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.takeover_disconnected),
-                            fontSize = 16.sp,
-                            color = textColor
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.takeover_disconnected_desc),
-                            fontSize = 14.sp,
-                            color = textColor.copy(0.6f),
-                            lineHeight = 16.sp,
-                        )
-                    }
-
-                    StyledSwitch(
-                        checked = takeoverWhenDisconnected,
-                        onCheckedChange = {
-                            takeoverWhenDisconnected = it
-                            sharedPreferences.edit { putBoolean("takeover_when_disconnected", it)}
-                        }
-                    )
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-                            takeoverWhenIdle = !takeoverWhenIdle
-                            sharedPreferences.edit { putBoolean("takeover_when_idle", takeoverWhenIdle)}
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 8.dp)
-                            .padding(end = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.takeover_idle),
-                            fontSize = 16.sp,
-                            color = textColor
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.takeover_idle_desc),
-                            fontSize = 14.sp,
-                            color = textColor.copy(0.6f),
-                            lineHeight = 16.sp,
-                        )
-                    }
-
-                    StyledSwitch(
-                        checked = takeoverWhenIdle,
-                        onCheckedChange = {
-                            takeoverWhenIdle = it
-                            sharedPreferences.edit { putBoolean("takeover_when_idle", it)}
-                        }
-                    )
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-                            takeoverWhenMusic = !takeoverWhenMusic
-                            sharedPreferences.edit { putBoolean("takeover_when_music", takeoverWhenMusic)}
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 8.dp)
-                            .padding(end = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.takeover_music),
-                            fontSize = 16.sp,
-                            color = textColor
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.takeover_music_desc),
-                            fontSize = 14.sp,
-                            color = textColor.copy(0.6f),
-                            lineHeight = 16.sp,
-                        )
-                    }
-
-                    StyledSwitch(
-                        checked = takeoverWhenMusic,
-                        onCheckedChange = {
-                            takeoverWhenMusic = it
-                            sharedPreferences.edit { putBoolean("takeover_when_music", it)}
-                        }
-                    )
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-                            takeoverWhenCall = !takeoverWhenCall
-                            sharedPreferences.edit { putBoolean("takeover_when_call", takeoverWhenCall)}
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 8.dp)
-                            .padding(end = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.takeover_call),
-                            fontSize = 16.sp,
-                            color = textColor
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.takeover_call_desc),
-                            fontSize = 14.sp,
-                            color = textColor.copy(0.6f),
-                            lineHeight = 16.sp,
-                        )
-                    }
-
-                    StyledSwitch(
-                        checked = takeoverWhenCall,
-                        onCheckedChange = {
-                            takeoverWhenCall = it
-                            sharedPreferences.edit { putBoolean("takeover_when_call", it)}
-                        }
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = stringResource(R.string.takeover_phone_state),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = textColor,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
-                )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-                            takeoverWhenRingingCall = !takeoverWhenRingingCall
-                            sharedPreferences.edit { putBoolean("takeover_when_ringing_call", takeoverWhenRingingCall)}
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 8.dp)
-                            .padding(end = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.takeover_ringing_call),
-                            fontSize = 16.sp,
-                            color = textColor
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.takeover_ringing_call_desc),
-                            fontSize = 14.sp,
-                            color = textColor.copy(0.6f),
-                            lineHeight = 16.sp,
-                        )
-                    }
-
-                    StyledSwitch(
-                        checked = takeoverWhenRingingCall,
-                        onCheckedChange = {
-                            takeoverWhenRingingCall = it
-                            sharedPreferences.edit { putBoolean("takeover_when_ringing_call", it)}
-                        }
-                    )
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-                            takeoverWhenMediaStart = !takeoverWhenMediaStart
-                            sharedPreferences.edit { putBoolean("takeover_when_media_start", takeoverWhenMediaStart)}
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 8.dp)
-                            .padding(end = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.takeover_media_start),
-                            fontSize = 16.sp,
-                            color = textColor
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.takeover_media_start_desc),
-                            fontSize = 14.sp,
-                            color = textColor.copy(0.6f),
-                            lineHeight = 16.sp,
-                        )
-                    }
-
-                    StyledSwitch(
-                        checked = takeoverWhenMediaStart,
-                        onCheckedChange = {
-                            takeoverWhenMediaStart = it
-                            sharedPreferences.edit { putBoolean("takeover_when_media_start", it)}
-                        }
-                    )
-                }
-            }
-
-            Text(
-                text = stringResource(R.string.advanced_options).uppercase(),
-                style = TextStyle(
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Light,
-                    color = textColor.copy(alpha = 0.6f),
-                    fontFamily = FontFamily(Font(R.font.sf_pro))
-                ),
-                modifier = Modifier.padding(8.dp, bottom = 2.dp, top = 24.dp)
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        backgroundColor,
-                        RoundedCornerShape(14.dp)
-                    )
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            showIrkDialog = true
-                        },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(
@@ -1026,12 +524,19 @@ fun AppSettingsScreen(navController: NavController) {
                     }
                 }
 
+                HorizontalDivider(
+                    thickness = 1.dp,
+                    color = Color(0x40888888),
+                )
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable {
-                            showEncKeyDialog = true
-                        },
+                        .clickable (
+                            onClick = { showEncKeyDialog.value = true },
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(
@@ -1054,177 +559,71 @@ fun AppSettingsScreen(navController: NavController) {
                         )
                     }
                 }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-                            useAlternateHeadTrackingPackets = !useAlternateHeadTrackingPackets
-                            sharedPreferences.edit {
-                                putBoolean(
-                                    "use_alternate_head_tracking_packets",
-                                    useAlternateHeadTrackingPackets)}
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 8.dp)
-                            .padding(end = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.use_alternate_head_tracking_packets),
-                            fontSize = 16.sp,
-                            color = textColor
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.use_alternate_head_tracking_packets_description),
-                            fontSize = 14.sp,
-                            color = textColor.copy(0.6f),
-                            lineHeight = 16.sp,
-                        )
-                    }
-
-                    StyledSwitch(
-                        checked = useAlternateHeadTrackingPackets,
-                        onCheckedChange = {
-                            useAlternateHeadTrackingPackets = it
-                            sharedPreferences.edit { putBoolean("use_alternate_head_tracking_packets", it)}
-                        }
-                    )
-                }
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            navController.navigate("troubleshooting")
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 8.dp)
-                            .padding(end = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.troubleshooting),
-                            fontSize = 16.sp,
-                            color = textColor
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.troubleshooting_description),
-                            fontSize = 14.sp,
-                            color = textColor.copy(0.6f),
-                            lineHeight = 16.sp,
-                        )
-                    }
-                }
-
-                LaunchedEffect(Unit) {
-                    actAsAppleDevice = RadareOffsetFinder.isSdpOffsetAvailable()
-                }
-                val restartBluetoothText = stringResource(R.string.found_offset_restart_bluetooth)
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            enabled = !isProcessingSdp,
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) {
-                            if (!isProcessingSdp) {
-                                val newValue = !actAsAppleDevice
-                                actAsAppleDevice = newValue
-                                isProcessingSdp = true
-                                coroutineScope.launch {
-                                    if (newValue) {
-                                        val radareOffsetFinder = RadareOffsetFinder(context)
-                                        val success = radareOffsetFinder.findSdpOffset()
-                                        if (success) {
-                                            Toast.makeText(context, restartBluetoothText, Toast.LENGTH_LONG).show()
-                                        }
-                                    } else {
-                                        RadareOffsetFinder.clearSdpOffset()
-                                    }
-                                    isProcessingSdp = false
-                                }
-                            }
-                        },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 8.dp)
-                            .padding(end = 4.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.act_as_an_apple_device),
-                            fontSize = 16.sp,
-                            color = textColor
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = stringResource(R.string.act_as_an_apple_device_description),
-                            fontSize = 14.sp,
-                            color = textColor.copy(0.6f),
-                            lineHeight = 16.sp,
-                        )
-                        if (actAsAppleDevice) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = stringResource(R.string.act_as_an_apple_device_warning),
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.error,
-                                lineHeight = 14.sp,
-                            )
-                        }
-                    }
-                    StyledSwitch(
-                        checked = actAsAppleDevice,
-                        onCheckedChange = {
-                            if (!isProcessingSdp) {
-                                actAsAppleDevice = it
-                                isProcessingSdp = true
-                                coroutineScope.launch {
-                                    if (it) {
-                                        val radareOffsetFinder = RadareOffsetFinder(context)
-                                        val success = radareOffsetFinder.findSdpOffset()
-                                        if (success) {
-                                            Toast.makeText(context, restartBluetoothText, Toast.LENGTH_LONG).show()
-                                        }
-                                    } else {
-                                        RadareOffsetFinder.clearSdpOffset()
-                                    }
-                                    isProcessingSdp = false
-                                }
-                            }
-                        },
-                        enabled = !isProcessingSdp
-                    )
-                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            StyledToggle(
+                label = stringResource(R.string.use_alternate_head_tracking_packets),
+                description = stringResource(R.string.use_alternate_head_tracking_packets_description),
+                checkedState = useAlternateHeadTrackingPackets,
+                onCheckedChange = {
+                    useAlternateHeadTrackingPackets.value = it
+                    sharedPreferences.edit { putBoolean("use_alternate_head_tracking_packets", it)}
+                },
+                independent = true
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            NavigationButton(
+                to = "troubleshooting",
+                name = stringResource(R.string.troubleshooting),
+                navController = navController,
+                independent = true,
+                description = stringResource(R.string.troubleshooting_description)
+            )
+
+            LaunchedEffect(Unit) {
+                actAsAppleDevice.value = RadareOffsetFinder.isSdpOffsetAvailable()
+            }
+            val restartBluetoothText = stringResource(R.string.found_offset_restart_bluetooth)
+
+            StyledToggle(
+                label = stringResource(R.string.act_as_an_apple_device),
+                description = stringResource(R.string.act_as_an_apple_device_description),
+                checkedState = actAsAppleDevice,
+                onCheckedChange = {
+                    actAsAppleDevice.value = it
+                    isProcessingSdp.value = true
+                    coroutineScope.launch {
+                        if (it) {
+                            val radareOffsetFinder = RadareOffsetFinder(context)
+                            val success = radareOffsetFinder.findSdpOffset()
+                            if (success) {
+                                Toast.makeText(context, restartBluetoothText, Toast.LENGTH_LONG).show()
+                            }
+                        } else {
+                            RadareOffsetFinder.clearSdpOffset()
+                        }
+                        isProcessingSdp.value = false
+                    }
+                },
+                independent = true,
+                enabled = !isProcessingSdp.value
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Button(
-                onClick = { showResetDialog = true },
+                onClick = { showResetDialog.value = true },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.errorContainer
                 ),
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(28.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -1251,9 +650,9 @@ fun AppSettingsScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            if (showResetDialog) {
+            if (showResetDialog.value) {
                 AlertDialog(
-                    onDismissRequest = { showResetDialog = false },
+                    onDismissRequest = { showResetDialog.value = false },
                     title = {
                         Text(
                             "Reset Hook Offset",
@@ -1289,7 +688,7 @@ fun AppSettingsScreen(navController: NavController) {
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
-                                showResetDialog = false
+                                showResetDialog.value = false
                             },
                             colors = ButtonDefaults.textButtonColors(
                                 contentColor = MaterialTheme.colorScheme.error
@@ -1304,7 +703,7 @@ fun AppSettingsScreen(navController: NavController) {
                     },
                     dismissButton = {
                         TextButton(
-                            onClick = { showResetDialog = false }
+                            onClick = { showResetDialog.value = false }
                         ) {
                             Text(
                                 "Cancel",
@@ -1316,9 +715,9 @@ fun AppSettingsScreen(navController: NavController) {
                 )
             }
 
-            if (showIrkDialog) {
+            if (showIrkDialog.value) {
                 AlertDialog(
-                    onDismissRequest = { showIrkDialog = false },
+                    onDismissRequest = { showIrkDialog.value = false },
                     title = {
                         Text(
                             stringResource(R.string.set_identity_resolving_key),
@@ -1335,13 +734,13 @@ fun AppSettingsScreen(navController: NavController) {
                             )
 
                             OutlinedTextField(
-                                value = irkValue,
+                                value = irkValue.value,
                                 onValueChange = {
-                                    irkValue = it.lowercase().filter { char -> char.isDigit() || char in 'a'..'f' }
-                                    irkError = null
+                                    irkValue.value = it.lowercase().filter { char -> char.isDigit() || char in 'a'..'f' }
+                                    irkError.value = null
                                 },
                                 modifier = Modifier.fillMaxWidth(),
-                                isError = irkError != null,
+                                isError = irkError.value != null,
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Ascii,
                                     capitalization = KeyboardCapitalization.None
@@ -1351,7 +750,7 @@ fun AppSettingsScreen(navController: NavController) {
                                     unfocusedBorderColor = if (isDarkTheme) Color.Gray else Color.LightGray
                                 ),
                                 supportingText = {
-                                    if (irkError != null) {
+                                    if (irkError.value != null) {
                                         Text(stringResource(R.string.must_be_32_hex_chars), color = MaterialTheme.colorScheme.error)
                                     }
                                 },
@@ -1364,15 +763,15 @@ fun AppSettingsScreen(navController: NavController) {
                         val errorText = stringResource(R.string.error_converting_hex)
                         TextButton(
                             onClick = {
-                                if (!validateHexInput(irkValue)) {
-                                    irkError = "Must be exactly 32 hex characters"
+                                if (!validateHexInput(irkValue.value)) {
+                                    irkError.value = "Must be exactly 32 hex characters"
                                     return@TextButton
                                 }
 
                                 try {
                                     val hexBytes = ByteArray(16)
                                     for (i in 0 until 16) {
-                                        val hexByte = irkValue.substring(i * 2, i * 2 + 2)
+                                        val hexByte = irkValue.value.substring(i * 2, i * 2 + 2)
                                         hexBytes[i] = hexByte.toInt(16).toByte()
                                     }
 
@@ -1380,9 +779,9 @@ fun AppSettingsScreen(navController: NavController) {
                                     sharedPreferences.edit { putString(AACPManager.Companion.ProximityKeyType.IRK.name, base64Value)}
 
                                     Toast.makeText(context, successText, Toast.LENGTH_SHORT).show()
-                                    showIrkDialog = false
+                                    showIrkDialog.value = false
                                 } catch (e: Exception) {
-                                    irkError = errorText + " " + (e.message ?: "Unknown error")
+                                    irkError.value = errorText + " " + (e.message ?: "Unknown error")
                                 }
                             }
                         ) {
@@ -1395,7 +794,7 @@ fun AppSettingsScreen(navController: NavController) {
                     },
                     dismissButton = {
                         TextButton(
-                            onClick = { showIrkDialog = false }
+                            onClick = { showIrkDialog.value = false }
                         ) {
                             Text(
                                 "Cancel",
@@ -1407,9 +806,9 @@ fun AppSettingsScreen(navController: NavController) {
                 )
             }
 
-            if (showEncKeyDialog) {
+            if (showEncKeyDialog.value) {
                 AlertDialog(
-                    onDismissRequest = { showEncKeyDialog = false },
+                    onDismissRequest = { showEncKeyDialog.value = false },
                     title = {
                         Text(
                             stringResource(R.string.set_encryption_key),
@@ -1426,13 +825,13 @@ fun AppSettingsScreen(navController: NavController) {
                             )
 
                             OutlinedTextField(
-                                value = encKeyValue,
+                                value = encKeyValue.value,
                                 onValueChange = {
-                                    encKeyValue = it.lowercase().filter { char -> char.isDigit() || char in 'a'..'f' }
-                                    encKeyError = null
+                                    encKeyValue.value = it.lowercase().filter { char -> char.isDigit() || char in 'a'..'f' }
+                                    encKeyError.value = null
                                 },
                                 modifier = Modifier.fillMaxWidth(),
-                                isError = encKeyError != null,
+                                isError = encKeyError.value != null,
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Ascii,
                                     capitalization = KeyboardCapitalization.None
@@ -1442,7 +841,7 @@ fun AppSettingsScreen(navController: NavController) {
                                     unfocusedBorderColor = if (isDarkTheme) Color.Gray else Color.LightGray
                                 ),
                                 supportingText = {
-                                    if (encKeyError != null) {
+                                    if (encKeyError.value != null) {
                                         Text(stringResource(R.string.must_be_32_hex_chars), color = MaterialTheme.colorScheme.error)
                                     }
                                 },
@@ -1455,15 +854,15 @@ fun AppSettingsScreen(navController: NavController) {
                         val errorText = stringResource(R.string.error_converting_hex)
                         TextButton(
                             onClick = {
-                                if (!validateHexInput(encKeyValue)) {
-                                    encKeyError = "Must be exactly 32 hex characters"
+                                if (!validateHexInput(encKeyValue.value)) {
+                                    encKeyError.value = "Must be exactly 32 hex characters"
                                     return@TextButton
                                 }
 
                                 try {
                                     val hexBytes = ByteArray(16)
                                     for (i in 0 until 16) {
-                                        val hexByte = encKeyValue.substring(i * 2, i * 2 + 2)
+                                        val hexByte = encKeyValue.value.substring(i * 2, i * 2 + 2)
                                         hexBytes[i] = hexByte.toInt(16).toByte()
                                     }
 
@@ -1471,9 +870,9 @@ fun AppSettingsScreen(navController: NavController) {
                                     sharedPreferences.edit { putString(AACPManager.Companion.ProximityKeyType.ENC_KEY.name, base64Value)}
 
                                     Toast.makeText(context, successText, Toast.LENGTH_SHORT).show()
-                                    showEncKeyDialog = false
+                                    showEncKeyDialog.value = false
                                 } catch (e: Exception) {
-                                    encKeyError = errorText + " " + (e.message ?: "Unknown error")
+                                    encKeyError.value = errorText + " " + (e.message ?: "Unknown error")
                                 }
                             }
                         ) {
@@ -1486,7 +885,7 @@ fun AppSettingsScreen(navController: NavController) {
                     },
                     dismissButton = {
                         TextButton(
-                            onClick = { showEncKeyDialog = false }
+                            onClick = { showEncKeyDialog.value = false }
                         ) {
                             Text(
                                 "Cancel",

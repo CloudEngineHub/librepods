@@ -20,15 +20,10 @@ package me.kavishdevar.librepods.screens
 
 import android.annotation.SuppressLint
 import android.util.Log
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -37,25 +32,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -74,9 +62,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import me.kavishdevar.librepods.R
 import me.kavishdevar.librepods.composables.ConfirmationDialog
+import me.kavishdevar.librepods.composables.NavigationButton
 import me.kavishdevar.librepods.composables.StyledIconButton
 import me.kavishdevar.librepods.composables.StyledScaffold
-import me.kavishdevar.librepods.composables.StyledSwitch
 import me.kavishdevar.librepods.composables.StyledToggle
 import me.kavishdevar.librepods.services.ServiceManager
 import me.kavishdevar.librepods.utils.AACPManager
@@ -117,7 +105,8 @@ fun HearingAidScreen(navController: NavController) {
             StyledIconButton(
                 onClick = { navController.popBackStack() },
                 icon = "􀯶",
-                darkMode = isDarkTheme
+                darkMode = isDarkTheme,
+                backdrop = backdrop
             )
         },
         actionButtons = emptyList(),
@@ -129,7 +118,7 @@ fun HearingAidScreen(navController: NavController) {
                 .hazeSource(hazeState)
                 .fillMaxSize()
                 .verticalScroll(verticalScrollState)
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Spacer(modifier = Modifier.height(spacerHeight))
@@ -175,22 +164,22 @@ fun HearingAidScreen(navController: NavController) {
             }
 
             fun onAdjustPhoneChange(value: Boolean) {
-                adjustPhoneEnabled.value = value
+                // TODO
             }
 
             fun onAdjustMediaChange(value: Boolean) {
-                adjustMediaEnabled.value = value
+                // TODO
             }
 
             Text(
-                text = stringResource(R.string.hearing_aid).uppercase(),
+                text = stringResource(R.string.hearing_aid),
                 style = TextStyle(
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.Light,
+                    fontWeight = FontWeight.Bold,
                     color = textColor.copy(alpha = 0.6f),
                     fontFamily = FontFamily(Font(R.font.sf_pro))
                 ),
-                modifier = Modifier.padding(8.dp, bottom = 2.dp)
+                modifier = Modifier.padding(16.dp, bottom = 2.dp)
             )
 
             val backgroundColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
@@ -198,9 +187,9 @@ fun HearingAidScreen(navController: NavController) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(backgroundColor, RoundedCornerShape(14.dp))
+                    .background(backgroundColor, RoundedCornerShape(28.dp))
                     .clip(
-                        RoundedCornerShape(14.dp)
+                        RoundedCornerShape(28.dp)
                     )
             ) {
                 StyledToggle(
@@ -209,31 +198,17 @@ fun HearingAidScreen(navController: NavController) {
                     independent = false
                 )
                 HorizontalDivider(
-                    thickness = 1.5.dp,
+                    thickness = 1.dp,
                     color = Color(0x40888888),
                     modifier = Modifier
-                        .padding(start = 12.dp, end = 0.dp)
+                        .padding(horizontal = 12.dp)
                 )
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { navController.navigate("hearing_aid_adjustments") }
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(R.string.adjustments),
-                        fontSize = 16.sp,
-                        color = textColor
-                    )
-                    Spacer(modifier = Modifier.weight(1f))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = textColor
-                    )
-                }
+                NavigationButton(
+                    to = "hearing_aid_adjustments",
+                    name = stringResource(R.string.adjustments),
+                    navController,
+                    independent = false
+                )
             }
             Text(
                 text = stringResource(R.string.hearing_aid_description),
@@ -243,12 +218,12 @@ fun HearingAidScreen(navController: NavController) {
                     color = (if (isSystemInDarkTheme()) Color.White else Color.Black).copy(alpha = 0.6f),
                     fontFamily = FontFamily(Font(R.font.sf_pro))
                 ),
-                modifier = Modifier.padding(horizontal = 8.dp)
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
             Spacer(modifier = Modifier.height(16.dp))
-            
+
             StyledToggle(
-                title = stringResource(R.string.media_assist).uppercase(),
+                title = stringResource(R.string.media_assist),
                 label = stringResource(R.string.media_assist),
                 checkedState = mediaAssistEnabled,
                 independent = true,
@@ -260,99 +235,27 @@ fun HearingAidScreen(navController: NavController) {
             Column (
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(backgroundColor, RoundedCornerShape(14.dp))
+                    .background(backgroundColor, RoundedCornerShape(28.dp))
             ) {
-                val isDarkThemeLocal = isSystemInDarkTheme()
-                var backgroundColorAdjustMedia by remember { mutableStateOf(if (isDarkThemeLocal) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)) }
-                val animatedBackgroundColorAdjustMedia by animateColorAsState(targetValue = backgroundColorAdjustMedia, animationSpec = tween(durationMillis = 500))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onPress = {
-                                    backgroundColorAdjustMedia = if (isDarkThemeLocal) Color(0x40888888) else Color(0x40D9D9D9)
-                                    tryAwaitRelease()
-                                    backgroundColorAdjustMedia = if (isDarkThemeLocal) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
-                                },
-                                onTap = {
-                                    onAdjustMediaChange(!adjustMediaEnabled.value)
-                                }
-                            )
-                        }
-                        .background(
-                            animatedBackgroundColorAdjustMedia,
-                            RoundedCornerShape(topStart = 14.dp, topEnd = 14.dp)
-                        ),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(R.string.adjust_media),
-                        modifier = Modifier.weight(1f),
-                        style = TextStyle(
-                            fontSize = 16.sp,
-                            fontFamily = FontFamily(Font(R.font.sf_pro)),
-                            fontWeight = FontWeight.Normal,
-                            color = textColor
-                        )
-                    )
-                    StyledSwitch(
-                        checked = adjustMediaEnabled.value,
-                        onCheckedChange = {
-                            onAdjustMediaChange(it)
-                        },
-                    )
-                }
-
+                StyledToggle(
+                    label = stringResource(R.string.adjust_media),
+                    checkedState = adjustMediaEnabled,
+                    onCheckedChange = { onAdjustMediaChange(it) },
+                    independent = false
+                )
                 HorizontalDivider(
-                    thickness = 1.5.dp,
+                    thickness = 1.dp,
                     color = Color(0x40888888),
                     modifier = Modifier
-                        .padding(start = 12.dp, end = 0.dp)
+                        .padding(horizontal = 12.dp)
                 )
 
-                var backgroundColorAdjustPhone by remember { mutableStateOf(if (isDarkThemeLocal) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)) }
-                val animatedBackgroundColorAdjustPhone by animateColorAsState(targetValue = backgroundColorAdjustPhone, animationSpec = tween(durationMillis = 500))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onPress = {
-                                    backgroundColorAdjustPhone = if (isDarkThemeLocal) Color(0x40888888) else Color(0x40D9D9D9)
-                                    tryAwaitRelease()
-                                    backgroundColorAdjustPhone = if (isDarkThemeLocal) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
-                                },
-                                onTap = {
-                                    onAdjustPhoneChange(!adjustPhoneEnabled.value)
-                                }
-                            )
-                        }
-                        .background(
-                            animatedBackgroundColorAdjustPhone,
-                            RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)
-                        ),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(R.string.adjust_calls),
-                        modifier = Modifier.weight(1f),
-                        style = TextStyle(
-                            fontSize = 16.sp,
-                            fontFamily = FontFamily(Font(R.font.sf_pro)),
-                            fontWeight = FontWeight.Normal,
-                            color = textColor
-                        )
-                    )
-                    StyledSwitch(
-                        checked = adjustPhoneEnabled.value,
-                        onCheckedChange = {
-                            onAdjustPhoneChange(it)
-                        },
-                    )
-                }
+                StyledToggle(
+                    label = stringResource(R.string.adjust_calls),
+                    checkedState = adjustPhoneEnabled,
+                    onCheckedChange = { onAdjustPhoneChange(it) },
+                    independent = false
+                )
             }
         }
     }

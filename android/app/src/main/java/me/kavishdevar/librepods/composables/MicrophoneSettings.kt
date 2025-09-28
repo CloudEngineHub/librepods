@@ -32,11 +32,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -55,6 +51,9 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -75,7 +74,7 @@ fun MicrophoneSettings(hazeState: HazeState) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(backgroundColor, RoundedCornerShape(14.dp))
+            .background(backgroundColor, RoundedCornerShape(28.dp))
             .padding(top = 2.dp)
     ) {
         val service = ServiceManager.getService()!!
@@ -141,8 +140,8 @@ fun MicrophoneSettings(hazeState: HazeState) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 12.dp, end = 12.dp)
-                .height(55.dp)
+                .padding(horizontal = 16.dp)
+                .height(58.dp)
                 .pointerInput(Unit) {
                     detectTapGestures { offset ->
                         val now = System.currentTimeMillis()
@@ -214,8 +213,11 @@ fun MicrophoneSettings(hazeState: HazeState) {
         ) {
             Text(
                 text = stringResource(R.string.microphone_mode),
-                fontSize = 16.sp,
-                color = textColor,
+                style = TextStyle(
+                    fontSize = 16.sp,
+                    color = textColor,
+                    fontFamily = FontFamily(Font(R.font.sf_pro))
+                ),
                 modifier = Modifier.padding(bottom = 4.dp)
             )
             Box(
@@ -228,14 +230,21 @@ fun MicrophoneSettings(hazeState: HazeState) {
                 ) {
                     Text(
                         text = selectedMode,
-                        fontSize = 16.sp,
-                        color = textColor.copy(alpha = 0.8f)
+                        style = TextStyle(
+                            fontSize = 16.sp,
+                            color = textColor.copy(alpha = 0.8f),
+                            fontFamily = FontFamily(Font(R.font.sf_pro))
+                        )
                     )
-                    Icon(
-                        Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = textColor.copy(alpha = 0.6f)
+                    Text(
+                        text = "􀆏",
+                        style = TextStyle(
+                            fontSize = 16.sp,
+                            color = textColor.copy(alpha = 0.6f),
+                            fontFamily = FontFamily(Font(R.font.sf_pro))
+                        ),
+                        modifier = Modifier
+                            .padding(start = 6.dp)
                     )
                 }
 

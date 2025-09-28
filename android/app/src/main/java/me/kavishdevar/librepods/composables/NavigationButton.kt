@@ -1,17 +1,17 @@
 /*
  * LibrePods - AirPods liberated from Apple’s ecosystem
- * 
+ *
  * Copyright (C) 2025 LibrePods contributors
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
  * by the Free Software Foundation, either version 3 of the License.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
@@ -23,75 +23,105 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-
+import me.kavishdevar.librepods.R
 
 @Composable
-fun NavigationButton(to: String, name: String, navController: NavController, onClick: (() -> Unit)? = null, independent: Boolean = true) {
+fun NavigationButton(
+    to: String,
+    name: String,
+    navController: NavController, onClick: (() -> Unit)? = null,
+    independent: Boolean = true,
+    description: String? = null,
+    currentState: String? = null
+) {
     val isDarkTheme = isSystemInDarkTheme()
     var backgroundColor by remember { mutableStateOf(if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)) }
     val animatedBackgroundColor by animateColorAsState(targetValue = backgroundColor, animationSpec = tween(durationMillis = 500))
-
-    Row(
-        modifier = Modifier
-            .background(animatedBackgroundColor, RoundedCornerShape(if (independent) 14.dp else 0.dp))
-            .height(55.dp)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        backgroundColor = if (isDarkTheme) Color(0x40888888) else Color(0x40D9D9D9)
-                        tryAwaitRelease()
-                        backgroundColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
-                    },
-                    onTap = {
-                        if (onClick != null) onClick() else navController.navigate(to)
-                    }
+    Column {
+        Row(
+            modifier = Modifier
+                .background(animatedBackgroundColor, RoundedCornerShape(if (independent) 28.dp else 0.dp))
+                .height(58.dp)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onPress = {
+                            backgroundColor = if (isDarkTheme) Color(0x40888888) else Color(0x40D9D9D9)
+                            tryAwaitRelease()
+                            backgroundColor = if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
+                        },
+                        onTap = {
+                            if (onClick != null) onClick() else navController.navigate(to)
+                        }
+                    )
+                }
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = name,
+                style = TextStyle(
+                    fontSize = 16.sp,
+                    fontFamily = FontFamily(Font(R.font.sf_pro)),
+                    color = if (isDarkTheme) Color.White else Color.Black,
+                )
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            if (currentState != null) {
+                Text(
+                    text = currentState,
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                        fontFamily = FontFamily(Font(R.font.sf_pro)),
+                        color = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.8f),
+                    )
                 )
             }
-    ) {
-        Text(
-            text = name,
-            modifier = Modifier.padding(16.dp),
-            color = if (isDarkTheme) Color.White else Color.Black
-        )
-        Spacer(modifier = Modifier.weight(1f))
-        IconButton(
-            onClick = { if (onClick != null) onClick() else navController.navigate(to) },
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = Color.Transparent,
-                contentColor = if (isDarkTheme) Color.White else Color.Black
-            ),
-            modifier = Modifier
-                .padding(start = 16.dp)
-                .fillMaxHeight()
-        ) {
-            @Suppress("DEPRECATION")
-            Icon(
-                imageVector = Icons.Default.KeyboardArrowRight,
-                contentDescription = name
+            Text(
+                text = "􀯻",
+                style = TextStyle(
+                    fontSize = 16.sp,
+                    fontFamily = FontFamily(Font(R.font.sf_pro)),
+                    color = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f)
+                ),
+                modifier = Modifier
+                    .padding(start = if (currentState != null) 6.dp else 0.dp)
+            )
+        }
+        if (description != null) {
+            Text(
+                text = description,
+                style = TextStyle(
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Light,
+                    color = if (isDarkTheme) Color.White.copy(alpha = 0.6f) else Color.Black.copy(alpha = 0.6f),
+                    fontFamily = FontFamily(Font(R.font.sf_pro))
+                ),
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
             )
         }
     }

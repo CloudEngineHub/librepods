@@ -24,6 +24,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,8 +60,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastCoerceAtMost
 import androidx.compose.ui.util.fastCoerceIn
 import androidx.compose.ui.util.lerp
+import com.kyant.backdrop.backdrops.LayerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.refractionWithDispersion
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
@@ -79,6 +82,8 @@ fun StyledIconButton(
     icon: String,
     darkMode: Boolean,
     tint: Color = Color.Unspecified,
+    backdrop: LayerBackdrop = rememberLayerBackdrop(),
+    modifier: Modifier = Modifier,
 ) {
     val animationScope = rememberCoroutineScope()
     val progressAnimationSpec = spring(0.5f, 300f, 0.001f)
@@ -110,26 +115,23 @@ half4 main(float2 coord) {
             null
         }
     }
-
+    val isDarkTheme = isSystemInDarkTheme()
     TextButton(
         onClick = onClick,
         shape = RoundedCornerShape(56.dp),
-        modifier = Modifier
+        modifier = modifier
             .padding(horizontal = 12.dp)
             .drawBackdrop(
-                backdrop = rememberLayerBackdrop(),
+                backdrop = backdrop,
                 shape = { RoundedCornerShape(56.dp) },
-                highlight = {
-                    val progress = progressAnimation.value
-                    Highlight.AmbientDefault.copy(alpha = progress.coerceIn(0.45f, 1f))
-                },
+                highlight = { Highlight.AmbientDefault.copy(alpha = if (isDarkTheme) 1f else 0f) },
                 shadow = {
                     Shadow(
-                        radius = 4f.dp,
-                        color = Color.Black.copy(0.08f)
+                        radius = 48f.dp,
+                        color = Color.Black.copy(if (isDarkTheme) 0.08f else 0.4f)
                     )
                 },
-                layer = {
+                layerBlock = {
                     val width = size.width
                     val height = size.height
 
@@ -182,7 +184,7 @@ half4 main(float2 coord) {
                     drawLayer(innerShadowLayer)
 
                     drawRect(
-                        Color.White.copy(progress.coerceIn(0.15f, 0.35f))
+                        (if (isDarkTheme) Color(0xFFAFAFAF) else Color.White).copy(progress.coerceIn(0.15f, 0.35f))
                     )
                 },
                 onDrawFront = {
@@ -218,6 +220,7 @@ half4 main(float2 coord) {
                 },
                 effects = {
                     refractionWithDispersion(6f.dp.toPx(), size.height / 2f)
+                    blur(24f, TileMode.Decal)
                 },
             )
             .pointerInput(animationScope) {

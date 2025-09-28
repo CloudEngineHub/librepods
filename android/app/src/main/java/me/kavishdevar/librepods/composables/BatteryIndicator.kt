@@ -27,7 +27,9 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -71,7 +73,6 @@ fun BatteryIndicator(
 
     Column(
         modifier = Modifier
-            .padding(12.dp)
             .background(backgroundColor), // just for haze to work
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -85,7 +86,7 @@ fun BatteryIndicator(
                 color = batteryFillColor,
                 gapSize = 0.dp,
                 strokeCap = StrokeCap.Round,
-                strokeWidth = 2.dp,
+                strokeWidth = 4.dp,
                 trackColor = if (isDarkTheme) Color(0xFF0E0E0F) else Color(0xFFE3E3E8)
             )
 
@@ -100,6 +101,8 @@ fun BatteryIndicator(
                 modifier = Modifier.scale(scaleAnim.value)
             )
         }
+
+        Spacer(modifier = Modifier.height(4.dp))
 
         Text(
             text = "$prefix $batteryPercentage%",

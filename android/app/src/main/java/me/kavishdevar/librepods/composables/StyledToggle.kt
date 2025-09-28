@@ -75,6 +75,7 @@ fun StyledToggle(
     sharedPreferenceKey: String? = null,
     sharedPreferences: SharedPreferences? = null,
     independent: Boolean = true,
+    enabled: Boolean = true,
     onCheckedChange: ((Boolean) -> Unit)? = null,
 ) {
     val isDarkTheme = isSystemInDarkTheme()
@@ -82,7 +83,9 @@ fun StyledToggle(
     var checked by checkedState
     var backgroundColor by remember { mutableStateOf(if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)) }
     val animatedBackgroundColor by animateColorAsState(targetValue = backgroundColor, animationSpec = tween(durationMillis = 500))
-
+    if (sharedPreferenceKey != null && sharedPreferences != null) {
+        checked = sharedPreferences.getBoolean(sharedPreferenceKey, checked)
+    }
     fun cb() {
         if (sharedPreferences != null) {
             if (sharedPreferenceKey == null) {
@@ -101,15 +104,16 @@ fun StyledToggle(
                     text = title,
                     style = TextStyle(
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Light,
+                        fontWeight = FontWeight.Bold,
                         color = textColor.copy(alpha = 0.6f)
                     ),
-                    modifier = Modifier.padding(8.dp, bottom = 4.dp)
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)
                 )
             }
             Box(
                 modifier = Modifier
-                    .background(animatedBackgroundColor, RoundedCornerShape(14.dp))
+                    .background(animatedBackgroundColor, RoundedCornerShape(28.dp))
+                    .padding(4.dp)
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onPress = {
@@ -120,8 +124,10 @@ fun StyledToggle(
                                     if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
                             },
                             onTap = {
-                                checked = !checked
-                                cb()
+                                if (enabled) {
+                                    checked = !checked
+                                    cb()
+                                }
                             }
                         )
                     }
@@ -145,10 +151,14 @@ fun StyledToggle(
                     )
                     StyledSwitch(
                         checked = checked,
+                        enabled = enabled,
                         onCheckedChange = {
-                            checked = it
-                            cb()
-                        }
+                            if (enabled) {
+                                checked = it
+                                cb()
+                            }
+                        },
+                        indpendent = true
                     )
                 }
             }
@@ -156,7 +166,7 @@ fun StyledToggle(
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
                     modifier = Modifier
-                        .padding(horizontal = 8.dp)
+                        .padding(horizontal = 16.dp)
                         .background(if (isDarkTheme) Color(0xFF000000) else Color(0xFFF2F2F7))
                 ) {
                     Text(
@@ -177,10 +187,10 @@ fun StyledToggle(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(28.dp),
                     color = if (isPressed.value) Color(0xFFE0E0E0) else Color.Transparent
                 )
-                .padding(horizontal = 12.dp, vertical = 12.dp)
+                .padding(16.dp)
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onPress = {
@@ -194,8 +204,10 @@ fun StyledToggle(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() }
                 ) {
-                    checked = !checked
-                    cb()
+                    if (enabled) {
+                        checked = !checked
+                        cb()
+                    }
                 },
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -206,25 +218,35 @@ fun StyledToggle(
             ) {
                 Text(
                     text = label,
-                    fontSize = 16.sp,
-                    color = textColor
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                        fontFamily = FontFamily(Font(R.font.sf_pro)),
+                        fontWeight = FontWeight.Normal,
+                        color = textColor
+                    )
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 if (description != null) {
                     Text(
                         text = description,
-                        fontSize = 12.sp,
-                        color = textColor.copy(0.6f),
-                        lineHeight = 14.sp,
+                        style = TextStyle(
+                            fontSize = 12.sp,
+                            color = textColor.copy(0.6f),
+                            fontFamily = FontFamily(Font(R.font.sf_pro)),
+                        )
                     )
                 }
             }
             StyledSwitch(
                 checked = checked,
+                enabled = enabled,
                 onCheckedChange = {
-                    checked = it
-                    cb()
-                }
+                    if (enabled) {
+                        checked = it
+                        cb()
+                    }
+                },
+                indpendent = false
             )
         }
     }
@@ -237,6 +259,7 @@ fun StyledToggle(
     description: String? = null,
     controlCommandIdentifier: AACPManager.Companion.ControlCommandIdentifiers,
     independent: Boolean = true,
+    enabled: Boolean = true,
     sharedPreferenceKey: String? = null,
     sharedPreferences: SharedPreferences? = null,
     onCheckedChange: ((Boolean) -> Unit)? = null,
@@ -291,15 +314,16 @@ fun StyledToggle(
                     text = title,
                     style = TextStyle(
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Light,
+                        fontWeight = FontWeight.Bold,
                         color = textColor.copy(alpha = 0.6f)
                     ),
-                    modifier = Modifier.padding(8.dp, bottom = 4.dp)
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)
                 )
             }
             Box(
                 modifier = Modifier
-                    .background(animatedBackgroundColor, RoundedCornerShape(14.dp))
+                    .background(animatedBackgroundColor, RoundedCornerShape(28.dp))
+                    .padding(4.dp)
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onPress = {
@@ -310,8 +334,10 @@ fun StyledToggle(
                                     if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
                             },
                             onTap = {
-                                checked = !checked
-                                cb()
+                                if (enabled) {
+                                    checked = !checked
+                                    cb()
+                                }
                             }
                         )
                     }
@@ -335,10 +361,14 @@ fun StyledToggle(
                     )
                     StyledSwitch(
                         checked = checked,
+                        enabled = enabled,
                         onCheckedChange = {
-                            checked = it
-                            cb()
-                        }
+                            if (enabled) {
+                                checked = it
+                                cb()
+                            }
+                        },
+                        indpendent = true
                     )
                 }
             }
@@ -346,7 +376,7 @@ fun StyledToggle(
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
                     modifier = Modifier
-                        .padding(horizontal = 8.dp)
+                        .padding(horizontal = 16.dp)
                         .background(if (isDarkTheme) Color(0xFF000000) else Color(0xFFF2F2F7))
                 ) {
                     Text(
@@ -367,10 +397,10 @@ fun StyledToggle(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(28.dp),
                     color = if (isPressed.value) Color(0xFFE0E0E0) else Color.Transparent
                 )
-                .padding(horizontal = 12.dp, vertical = 12.dp)
+                .padding(16.dp)
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onPress = {
@@ -384,8 +414,10 @@ fun StyledToggle(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() }
                 ) {
-                    checked = !checked
-                    cb()
+                    if (enabled) {
+                        checked = !checked
+                        cb()
+                    }
                 },
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -396,25 +428,35 @@ fun StyledToggle(
             ) {
                 Text(
                     text = label,
-                    fontSize = 16.sp,
-                    color = textColor
+                    style = TextStyle(
+                        fontSize = 16.sp,
+                        fontFamily = FontFamily(Font(R.font.sf_pro)),
+                        fontWeight = FontWeight.Normal,
+                        color = textColor
+                    )
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 if (description != null) {
                     Text(
                         text = description,
-                        fontSize = 12.sp,
-                        color = textColor.copy(0.6f),
-                        lineHeight = 14.sp,
+                        style = TextStyle(
+                            fontSize = 12.sp,
+                            color = textColor.copy(0.6f),
+                            fontFamily = FontFamily(Font(R.font.sf_pro)),
+                        )
                     )
                 }
             }
             StyledSwitch(
                 checked = checked,
+                enabled = enabled,
                 onCheckedChange = {
-                    checked = it
-                    cb()
-                }
+                    if (enabled) {
+                        checked = it
+                        cb()
+                    }
+                },
+                indpendent = false
             )
         }
     }
@@ -427,6 +469,7 @@ fun StyledToggle(
     description: String? = null,
     attHandle: ATTHandles,
     independent: Boolean = true,
+    enabled: Boolean = true,
     sharedPreferenceKey: String? = null,
     sharedPreferences: SharedPreferences? = null,
     onCheckedChange: ((Boolean) -> Unit)? = null,
@@ -509,15 +552,16 @@ fun StyledToggle(
                     text = title,
                     style = TextStyle(
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Light,
+                        fontWeight = FontWeight.Bold,
                         color = textColor.copy(alpha = 0.6f)
                     ),
-                    modifier = Modifier.padding(8.dp, bottom = 4.dp)
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp)
                 )
             }
             Box(
                 modifier = Modifier
-                    .background(animatedBackgroundColor, RoundedCornerShape(14.dp))
+                    .background(animatedBackgroundColor, RoundedCornerShape(28.dp))
+                    .padding(4.dp)
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onPress = {
@@ -528,8 +572,10 @@ fun StyledToggle(
                                     if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)
                             },
                             onTap = {
-                                checked = !checked
-                                cb()
+                                if (enabled) {
+                                    checked = !checked
+                                    cb()
+                                }
                             }
                         )
                     }
@@ -553,10 +599,14 @@ fun StyledToggle(
                     )
                     StyledSwitch(
                         checked = checked,
+                        enabled = enabled,
                         onCheckedChange = {
-                            checked = it
-                            cb()
-                        }
+                            if (enabled) {
+                                checked = it
+                                cb()
+                            }
+                        },
+                        indpendent = true
                     )
                 }
             }
@@ -564,7 +614,7 @@ fun StyledToggle(
                 Spacer(modifier = Modifier.height(8.dp))
                 Box(
                     modifier = Modifier
-                        .padding(horizontal = 8.dp)
+                        .padding(horizontal = 16.dp)
                         .background(if (isDarkTheme) Color(0xFF000000) else Color(0xFFF2F2F7))
                 ) {
                     Text(
@@ -585,10 +635,10 @@ fun StyledToggle(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(28.dp),
                     color = if (isPressed.value) Color(0xFFE0E0E0) else Color.Transparent
                 )
-                .padding(horizontal = 12.dp, vertical = 12.dp)
+                .padding(16.dp)
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onPress = {
@@ -602,8 +652,10 @@ fun StyledToggle(
                     indication = null,
                     interactionSource = remember { MutableInteractionSource() }
                 ) {
-                    checked = !checked
-                    cb()
+                    if (enabled) {
+                        checked = !checked
+                        cb()
+                    }
                 },
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -629,10 +681,14 @@ fun StyledToggle(
             }
             StyledSwitch(
                 checked = checked,
+                enabled = enabled,
                 onCheckedChange = {
-                    checked = it
-                    cb()
-                }
+                    if (enabled) {
+                        checked = it
+                        cb()
+                    }
+                },
+                indpendent = false
             )
         }
     }
