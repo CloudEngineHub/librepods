@@ -88,6 +88,8 @@ import me.kavishdevar.librepods.constants.StemAction
 import me.kavishdevar.librepods.constants.isHeadTrackingData
 import me.kavishdevar.librepods.utils.AACPManager
 import me.kavishdevar.librepods.utils.AACPManager.Companion.StemPressType
+import me.kavishdevar.librepods.utils.AirPodsInstance
+import me.kavishdevar.librepods.utils.AirPodsModels
 import me.kavishdevar.librepods.utils.ATTManager
 import me.kavishdevar.librepods.utils.BLEManager
 import me.kavishdevar.librepods.utils.BluetoothConnectionManager
@@ -152,6 +154,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     var localMac = ""
     lateinit var aacpManager: AACPManager
     var attManager: ATTManager? = null
+    var airpodsInstance: AirPodsInstance? = null
     var cameraActive = false
     private var disconnectedBecauseReversed = false
     private var otherDeviceTookOver = false
@@ -191,6 +194,19 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         var rightLongPressAction: StemAction = StemAction.defaultActions[StemPressType.LONG_PRESS]!!,
 
         var cameraAction: AACPManager.Companion.StemPressType? = null,
+
+        // AirPods device information
+        var airpodsName: String = "",
+        var airpodsModelNumber: String = "",
+        var airpodsManufacturer: String = "",
+        var airpodsSerialNumber: String = "",
+        var airpodsLeftSerialNumber: String = "",
+        var airpodsRightSerialNumber: String = "",
+        var airpodsVersion1: String = "",
+        var airpodsVersion2: String = "",
+        var airpodsVersion3: String = "",
+        var airpodsHardwareRevision: String = "",
+        var airpodsUpdaterIdentifier: String = "",
     )
 
     private lateinit var config: ServiceConfig
@@ -931,6 +947,49 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                     "AirPodsParser",
                     "Device Information: name: ${deviceInformation.name}, modelNumber: ${deviceInformation.modelNumber}, manufacturer: ${deviceInformation.manufacturer}, serialNumber: ${deviceInformation.serialNumber}, version1: ${deviceInformation.version1}, version2: ${deviceInformation.version2}, hardwareRevision: ${deviceInformation.hardwareRevision}, updaterIdentifier: ${deviceInformation.updaterIdentifier}, leftSerialNumber: ${deviceInformation.leftSerialNumber}, rightSerialNumber: ${deviceInformation.rightSerialNumber}, version3: ${deviceInformation.version3}"
                 )
+                // Store in SharedPreferences
+                sharedPreferences.edit {
+                    putString("airpods_name", deviceInformation.name)
+                    putString("airpods_model_number", deviceInformation.modelNumber)
+                    putString("airpods_manufacturer", deviceInformation.manufacturer)
+                    putString("airpods_serial_number", deviceInformation.serialNumber)
+                    putString("airpods_left_serial_number", deviceInformation.leftSerialNumber)
+                    putString("airpods_right_serial_number", deviceInformation.rightSerialNumber)
+                    putString("airpods_version1", deviceInformation.version1)
+                    putString("airpods_version2", deviceInformation.version2)
+                    putString("airpods_version3", deviceInformation.version3)
+                    putString("airpods_hardware_revision", deviceInformation.hardwareRevision)
+                    putString("airpods_updater_identifier", deviceInformation.updaterIdentifier)
+                }
+                // Update config
+                config.airpodsName = deviceInformation.name
+                config.airpodsModelNumber = deviceInformation.modelNumber
+                config.airpodsManufacturer = deviceInformation.manufacturer
+                config.airpodsSerialNumber = deviceInformation.serialNumber
+                config.airpodsLeftSerialNumber = deviceInformation.leftSerialNumber
+                config.airpodsRightSerialNumber = deviceInformation.rightSerialNumber
+                config.airpodsVersion1 = deviceInformation.version1
+                config.airpodsVersion2 = deviceInformation.version2
+                config.airpodsVersion3 = deviceInformation.version3
+                config.airpodsHardwareRevision = deviceInformation.hardwareRevision
+                config.airpodsUpdaterIdentifier = deviceInformation.updaterIdentifier
+                
+                val model = AirPodsModels.getModelByModelNumber(config.airpodsModelNumber)
+                if (model != null) {
+                    airpodsInstance = AirPodsInstance(
+                        name = config.airpodsName,
+                        model = model,
+                        actualModelNumber = config.airpodsModelNumber,
+                        serialNumber = config.airpodsSerialNumber,
+                        leftSerialNumber = config.airpodsLeftSerialNumber,
+                        rightSerialNumber = config.airpodsRightSerialNumber,
+                        version1 = config.airpodsVersion1,
+                        version2 = config.airpodsVersion2,
+                        version3 = config.airpodsVersion3,
+                        aacpManager = aacpManager,
+                        attManager = attManager
+                    )
+                }
             }
 
             @SuppressLint("NewApi")
@@ -1167,6 +1226,19 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             rightLongPressAction = StemAction.fromString(sharedPreferences.getString("right_long_press_action", "DIGITAL_ASSISTANT") ?: "DIGITAL_ASSISTANT")!!,
 
             cameraAction = sharedPreferences.getString("camera_action", null)?.let { AACPManager.Companion.StemPressType.valueOf(it) },
+
+            // AirPods device information
+            airpodsName = sharedPreferences.getString("airpods_name", "") ?: "",
+            airpodsModelNumber = sharedPreferences.getString("airpods_model_number", "") ?: "",
+            airpodsManufacturer = sharedPreferences.getString("airpods_manufacturer", "") ?: "",
+            airpodsSerialNumber = sharedPreferences.getString("airpods_serial_number", "") ?: "",
+            airpodsLeftSerialNumber = sharedPreferences.getString("airpods_left_serial_number", "") ?: "",
+            airpodsRightSerialNumber = sharedPreferences.getString("airpods_right_serial_number", "") ?: "",
+            airpodsVersion1 = sharedPreferences.getString("airpods_version1", "") ?: "",
+            airpodsVersion2 = sharedPreferences.getString("airpods_version2", "") ?: "",
+            airpodsVersion3 = sharedPreferences.getString("airpods_version3", "") ?: "",
+            airpodsHardwareRevision = sharedPreferences.getString("airpods_hardware_revision", "") ?: "",
+            airpodsUpdaterIdentifier = sharedPreferences.getString("airpods_updater_identifier", "") ?: "",
         )
     }
 
@@ -1248,6 +1320,19 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 setupStemActions()
             }
             "camera_action" -> config.cameraAction = preferences.getString(key, null)?.let { AACPManager.Companion.StemPressType.valueOf(it) }
+
+            // AirPods device information
+            "airpods_name" -> config.airpodsName = preferences.getString(key, "") ?: ""
+            "airpods_model_number" -> config.airpodsModelNumber = preferences.getString(key, "") ?: ""
+            "airpods_manufacturer" -> config.airpodsManufacturer = preferences.getString(key, "") ?: ""
+            "airpods_serial_number" -> config.airpodsSerialNumber = preferences.getString(key, "") ?: ""
+            "airpods_left_serial_number" -> config.airpodsLeftSerialNumber = preferences.getString(key, "") ?: ""
+            "airpods_right_serial_number" -> config.airpodsRightSerialNumber = preferences.getString(key, "") ?: ""
+            "airpods_version1" -> config.airpodsVersion1 = preferences.getString(key, "") ?: ""
+            "airpods_version2" -> config.airpodsVersion2 = preferences.getString(key, "") ?: ""
+            "airpods_version3" -> config.airpodsVersion3 = preferences.getString(key, "") ?: ""
+            "airpods_hardware_revision" -> config.airpodsHardwareRevision = preferences.getString(key, "") ?: ""
+            "airpods_updater_identifier" -> config.airpodsUpdaterIdentifier = preferences.getString(key, "") ?: ""
         }
 
         if (key == "mac_address") {
@@ -1747,7 +1832,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             updatedNotification = NotificationCompat.Builder(this, "background_service_status")
                 .setSmallIcon(R.drawable.airpods)
                 .setContentTitle("AirPods not connected")
-                .setContentText("Tap to open app")
+                               .setContentText("Tap to open app")
                 .setContentIntent(pendingIntent)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
@@ -1968,15 +2053,17 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 
     private fun setMetadatas(d: BluetoothDevice) {
         d.let{ device ->
-            val metadataSet = SystemApisUtils.setMetadata(
+            val instance = airpodsInstance
+            if (instance != null) {
+                val metadataSet = SystemApisUtils.setMetadata(
                     device,
                     device.METADATA_MAIN_ICON,
-                    resToUri(R.drawable.pro_2).toString().toByteArray()
+                    resToUri(instance.model.budCaseRes).toString().toByteArray()
                 ) &&
                 SystemApisUtils.setMetadata(
                     device,
                     device.METADATA_MODEL_NAME,
-                    "AirPods Pro (2 Gen.)".toByteArray()
+                    instance.model.name.toByteArray()
                 ) &&
                 SystemApisUtils.setMetadata(
                     device,
@@ -1986,22 +2073,22 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 SystemApisUtils.setMetadata(
                     device,
                     device.METADATA_UNTETHERED_CASE_ICON,
-                    resToUri(R.drawable.pro_2_case).toString().toByteArray()
+                    resToUri(instance.model.caseRes).toString().toByteArray()
                 ) &&
                 SystemApisUtils.setMetadata(
                     device,
                     device.METADATA_UNTETHERED_RIGHT_ICON,
-                    resToUri(R.drawable.pro_2_right).toString().toByteArray()
+                    resToUri(instance.model.rightBudsRes).toString().toByteArray()
                 ) &&
                 SystemApisUtils.setMetadata(
                     device,
                     device.METADATA_UNTETHERED_LEFT_ICON,
-                    resToUri(R.drawable.pro_2_left).toString().toByteArray()
+                    resToUri(instance.model.leftBudsRes).toString().toByteArray()
                 ) &&
                 SystemApisUtils.setMetadata(
                     device,
                     device.METADATA_MANUFACTURER_NAME,
-                    "Apple".toByteArray()
+                    instance.model.manufacturer.toByteArray()
                 ) &&
                 SystemApisUtils.setMetadata(
                     device,
@@ -2023,7 +2110,10 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                     device.METADATA_UNTETHERED_RIGHT_LOW_BATTERY_THRESHOLD,
                     "20".toByteArray()
                 )
-            Log.d(TAG, "Metadata set: $metadataSet")
+                Log.d(TAG, "Metadata set: $metadataSet")
+            } else {
+                Log.w(TAG, "AirPods instance is not of type AirPodsInstance, skipping metadata setting")
+            }
         }
     }
 
@@ -2047,6 +2137,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             if (bluetoothDevice != null && action != null && !action.isEmpty()) {
                 Log.d(TAG, "Received bluetooth connection broadcast")
                 if (ServiceManager.getService()?.isConnectedLocally == true) {
+                    Log.d(TAG, "Device is already connected locally, ignoring broadcast")
                     ServiceManager.getService()?.manuallyCheckForAudioSource()
                     return
                 }
@@ -2088,6 +2179,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 
     fun manuallyCheckForAudioSource() {
         val shouldResume = MediaController.getMusicActive()
+        if (airpodsInstance == null) return
         if ((earDetectionNotification.status[0] != 0.toByte() && earDetectionNotification.status[1] != 0.toByte()) || disconnectedBecauseReversed || otherDeviceTookOver) {
             Log.d(
                 TAG,
@@ -2312,6 +2404,26 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
 
                             attManager = ATTManager(device)
                             attManager!!.connect()
+
+                            // Create AirPodsInstance from stored config if available
+                            if (airpodsInstance == null && config.airpodsModelNumber.isNotEmpty()) {
+                                val model = AirPodsModels.getModelByModelNumber(config.airpodsModelNumber)
+                                if (model != null) {
+                                    airpodsInstance = AirPodsInstance(
+                                        name = config.airpodsName,
+                                        model = model,
+                                        actualModelNumber = config.airpodsModelNumber,
+                                        serialNumber = config.airpodsSerialNumber,
+                                        leftSerialNumber = config.airpodsLeftSerialNumber,
+                                        rightSerialNumber = config.airpodsRightSerialNumber,
+                                        version1 = config.airpodsVersion1,
+                                        version2 = config.airpodsVersion2,
+                                        version3 = config.airpodsVersion3,
+                                        aacpManager = aacpManager,
+                                        attManager = attManager
+                                    )
+                                }
+                            }
 
                             updateNotificationContent(
                                 true,

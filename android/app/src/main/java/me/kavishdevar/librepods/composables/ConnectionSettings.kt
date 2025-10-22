@@ -61,7 +61,7 @@ fun ConnectionSettings() {
             thickness = 1.dp,
             color = Color(0x40888888),
             modifier = Modifier
-                .padding(horizontal= 12.dp)
+                .padding(horizontal = 12.dp)
         )
 
         StyledToggle(

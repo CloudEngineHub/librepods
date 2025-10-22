@@ -118,7 +118,9 @@ class AACPManager {
             ALLOW_AUTO_CONNECT(0x36), // not sure what this does, AUTOMATIC_CONNECTION is the only one used, but this is newer... so ¯\_(ツ)_/¯
             EAR_DETECTION_CONFIG(0x0A),
             AUTOMATIC_CONNECTION_CONFIG(0x20),
-            OWNS_CONNECTION(0x06);
+            OWNS_CONNECTION(0x06),
+            PPE_TOGGLE_CONFIG(0x37),
+            PPE_CAP_LEVEL_CONFIG(0x38);
 
             companion object {
                 fun fromByte(byte: Byte): ControlCommandIdentifiers? =

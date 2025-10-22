@@ -44,6 +44,11 @@ android {
             version = "3.22.1"
         }
     }
+    sourceSets {
+        getByName("main") {
+            res.srcDirs("src/main/res", "src/main/res-apple")
+        }
+    }
 }
 
 dependencies {

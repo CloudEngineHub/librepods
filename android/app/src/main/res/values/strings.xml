@@ -82,7 +82,7 @@
     <string name="takeover_media_start_desc">Your phone starts playing media</string>
     <string name="undo">Undo</string>
     <string name="customize_transparency_mode_description">You can customize Transparency mode for your AirPods Pro to help you hear what\'s around you.</string>
-    <string name="loud_sound_reduction_description">AirPods Pro automatically reduce your exposure to loud environmental noises when in Transparency and Adaptive mode.</string>
+    <string name="loud_sound_reduction_description">Loud Sound Reduction can actively reduce your exposure to loud environmental noises when in Transparency and Adaptive mode. Loud Sound Reduction is not active in Off mode.</string>
     <string name="loud_sound_reduction">Loud Sound Reduction</string>
     <string name="call_controls">Call Controls</string>
     <string name="automatically_connect">Connect to this device automatically</string>
@@ -193,4 +193,15 @@
     <string name="root_access_denied">Root access was denied. Please grant root permissions.</string>
     <string name="troubleshooting_steps">Troubleshooting Steps</string>
     <string name="hearing_test_value_instruction">Please enter the loss values in dbHL</string>
+    <string name="about">About</string>
+    <string name="model_name">Model Name</string>
+    <string name="model_number">Model Number</string>
+    <string name="serial_number">Serial Number</string>
+    <string name="version">Version</string>
+    <string name="hearing_health">Hearing Health</string>
+    <string name="hearing_protection">Hearing Protection</string>
+    <string name="workspace_use">Workspace Use</string>
+    <string name="ppe">EN 352 Protection</string>
+    <string name="workspace_use_description">EN 352 Protection limits the maximum level of media to 82 dBA, and meets applicable EN 352 Standard requirements for personal hearing protection.</string>
+    <string name="environmental_noise">Environmental Noise</string>
 </resources>

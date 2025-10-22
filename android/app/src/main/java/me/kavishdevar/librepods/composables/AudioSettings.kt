@@ -42,15 +42,27 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import me.kavishdevar.librepods.R
+import me.kavishdevar.librepods.services.ServiceManager
 import me.kavishdevar.librepods.utils.AACPManager
 import me.kavishdevar.librepods.utils.ATTHandles
+import me.kavishdevar.librepods.utils.Capability
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 @Composable
 fun AudioSettings(navController: NavController) {
     val isDarkTheme = isSystemInDarkTheme()
     val textColor = if (isDarkTheme) Color.White else Color.Black
-
+    val service = ServiceManager.getService()
+    if (service == null) return
+    val airpodsInstance = service.airpodsInstance
+    if (airpodsInstance == null) return
+    if (!airpodsInstance.model.capabilities.contains(Capability.ADAPTIVE_VOLUME) &&
+        !airpodsInstance.model.capabilities.contains(Capability.CONVERSATION_AWARENESS) &&
+        !airpodsInstance.model.capabilities.contains(Capability.LOUD_SOUND_REDUCTION) &&
+        !airpodsInstance.model.capabilities.contains(Capability.ADAPTIVE_AUDIO)
+    ) {
+        return
+    }
     Box(
         modifier = Modifier
             .background(if (isDarkTheme) Color(0xFF000000) else Color(0xFFF2F2F7))
@@ -76,52 +88,60 @@ fun AudioSettings(navController: NavController) {
             .padding(top = 2.dp)
     ) {
 
-        StyledToggle(
-            label = stringResource(R.string.personalized_volume),
-            description = stringResource(R.string.personalized_volume_description),
-            controlCommandIdentifier = AACPManager.Companion.ControlCommandIdentifiers.ADAPTIVE_VOLUME_CONFIG,
-            independent = false
-        )
+        if (airpodsInstance.model.capabilities.contains(Capability.ADAPTIVE_VOLUME)) {
+            StyledToggle(
+                label = stringResource(R.string.personalized_volume),
+                description = stringResource(R.string.personalized_volume_description),
+                controlCommandIdentifier = AACPManager.Companion.ControlCommandIdentifiers.ADAPTIVE_VOLUME_CONFIG,
+                independent = false
+            )
 
-        HorizontalDivider(
-            thickness = 1.dp,
-            color = Color(0x40888888),
-            modifier = Modifier
-                .padding(horizontal= 12.dp)
-        )
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = Color(0x40888888),
+                modifier = Modifier
+                    .padding(horizontal = 12.dp)
+            )
+        }
 
-        StyledToggle(
-            label = stringResource(R.string.conversational_awareness),
-            description = stringResource(R.string.conversational_awareness_description),
-            controlCommandIdentifier = AACPManager.Companion.ControlCommandIdentifiers.CONVERSATION_DETECT_CONFIG,
-            independent = false
-        )
-        HorizontalDivider(
-            thickness = 1.dp,
-            color = Color(0x40888888),
-            modifier = Modifier
-                .padding(horizontal= 12.dp)
-        )
+        if (airpodsInstance.model.capabilities.contains(Capability.CONVERSATION_AWARENESS)) {
+            StyledToggle(
+                label = stringResource(R.string.conversational_awareness),
+                description = stringResource(R.string.conversational_awareness_description),
+                controlCommandIdentifier = AACPManager.Companion.ControlCommandIdentifiers.CONVERSATION_DETECT_CONFIG,
+                independent = false
+            )
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = Color(0x40888888),
+                modifier = Modifier
+                    .padding(horizontal = 12.dp)
+            )
+        }
 
-        StyledToggle(
-            label = stringResource(R.string.loud_sound_reduction),
-            description = stringResource(R.string.loud_sound_reduction_description),
-            attHandle = ATTHandles.LOUD_SOUND_REDUCTION,
-            independent = false
-        )
-        HorizontalDivider(
-            thickness = 1.dp,
-            color = Color(0x40888888),
-            modifier = Modifier
-                .padding(horizontal= 12.dp)
-        )
+        if (airpodsInstance.model.capabilities.contains(Capability.LOUD_SOUND_REDUCTION)){
+            StyledToggle(
+                label = stringResource(R.string.loud_sound_reduction),
+                description = stringResource(R.string.loud_sound_reduction_description),
+                attHandle = ATTHandles.LOUD_SOUND_REDUCTION,
+                independent = false
+            )
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = Color(0x40888888),
+                modifier = Modifier
+                    .padding(horizontal = 12.dp)
+            )
+        }
 
-        NavigationButton(
-            to = "adaptive_strength",
-            name = stringResource(R.string.adaptive_audio),
-            navController = navController,
-            independent = false
-        )
+        if (airpodsInstance.model.capabilities.contains(Capability.ADAPTIVE_AUDIO)) {
+            NavigationButton(
+                to = "adaptive_strength",
+                name = stringResource(R.string.adaptive_audio),
+                navController = navController,
+                independent = false
+            )
+        }
     }
 }
 

@@ -95,6 +95,7 @@ import me.kavishdevar.librepods.composables.StyledToggle
 import me.kavishdevar.librepods.services.ServiceManager
 import me.kavishdevar.librepods.utils.AACPManager
 import me.kavishdevar.librepods.utils.ATTHandles
+import me.kavishdevar.librepods.utils.Capability
 import me.kavishdevar.librepods.utils.RadareOffsetFinder
 import kotlin.io.encoding.ExperimentalEncodingApi
 
@@ -116,6 +117,8 @@ fun AccessibilitySettingsScreen(navController: NavController) {
     val trackColor = if (isDarkTheme) Color(0xFFB3B3B3) else Color(0xFF929491)
     val activeTrackColor = if (isDarkTheme) Color(0xFF007AFF) else Color(0xFF3C6DF5)
     val thumbColor = if (isDarkTheme) Color(0xFFFFFFFF) else Color(0xFFFFFFFF)
+
+    val capabilities = remember { ServiceManager.getService()?.airpodsInstance?.model?.capabilities ?: emptySet<Capability>() }
 
     val hearingAidEnabled = remember { mutableStateOf(
         aacpManager?.controlCommandStatusList?.find { it.identifier == AACPManager.Companion.ControlCommandIdentifiers.HEARING_AID }?.value?.getOrNull(1) == 0x01.toByte() &&
@@ -371,11 +374,13 @@ fun AccessibilitySettingsScreen(navController: NavController) {
                 independent = true,
             )
 
-            StyledToggle(
-                label = stringResource(R.string.loud_sound_reduction),
-                description = stringResource(R.string.loud_sound_reduction_description),
-                attHandle = ATTHandles.LOUD_SOUND_REDUCTION
-            )
+            if (capabilities.contains(Capability.LOUD_SOUND_REDUCTION)) {
+                StyledToggle(
+                    label = stringResource(R.string.loud_sound_reduction),
+                    description = stringResource(R.string.loud_sound_reduction_description),
+                    attHandle = ATTHandles.LOUD_SOUND_REDUCTION
+                )
+            }
 
             if (!hearingAidEnabled.value&& isSdpOffsetAvailable.value) {
                 NavigationButton(
@@ -399,29 +404,31 @@ fun AccessibilitySettingsScreen(navController: NavController) {
                 independent = true
             )
 
-            StyledToggle(
-                label = stringResource(R.string.volume_control),
-                description = stringResource(R.string.volume_control_description),
-                controlCommandIdentifier = AACPManager.Companion.ControlCommandIdentifiers.VOLUME_SWIPE_MODE,
-            )
+            if (capabilities.contains(Capability.SWIPE_FOR_VOLUME)) {
+                StyledToggle(
+                    label = stringResource(R.string.volume_control),
+                    description = stringResource(R.string.volume_control_description),
+                    controlCommandIdentifier = AACPManager.Companion.ControlCommandIdentifiers.VOLUME_SWIPE_MODE,
+                )
 
-            DropdownMenuComponent(
-                label = stringResource(R.string.volume_swipe_speed),
-                description = stringResource(R.string.volume_swipe_speed_description),
-                options = volumeSwipeSpeedOptions.values.toList(),
-                selectedOption = selectedVolumeSwipeSpeed?: "Default",
-                onOptionSelected = { newValue ->
-                    selectedVolumeSwipeSpeed = newValue
-                    aacpManager?.sendControlCommand(
-                        identifier = AACPManager.Companion.ControlCommandIdentifiers.VOLUME_SWIPE_INTERVAL.value,
-                        value = volumeSwipeSpeedOptions.filterValues { it == newValue }.keys.firstOrNull()
-                            ?: 1.toByte()
-                    )
-                },
-                textColor = textColor,
-                hazeState = hazeState,
-                independent = true
-            )
+                DropdownMenuComponent(
+                    label = stringResource(R.string.volume_swipe_speed),
+                    description = stringResource(R.string.volume_swipe_speed_description),
+                    options = volumeSwipeSpeedOptions.values.toList(),
+                    selectedOption = selectedVolumeSwipeSpeed?: "Default",
+                    onOptionSelected = { newValue ->
+                        selectedVolumeSwipeSpeed = newValue
+                        aacpManager?.sendControlCommand(
+                            identifier = AACPManager.Companion.ControlCommandIdentifiers.VOLUME_SWIPE_INTERVAL.value,
+                            value = volumeSwipeSpeedOptions.filterValues { it == newValue }.keys.firstOrNull()
+                                ?: 1.toByte()
+                        )
+                    },
+                    textColor = textColor,
+                    hazeState = hazeState,
+                    independent = true
+                )
+            }
 
             if (!hearingAidEnabled.value&& isSdpOffsetAvailable.value) {
                 Text(
@@ -562,88 +569,89 @@ fun AccessibilitySettingsScreen(navController: NavController) {
                     }
                 }
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(backgroundColor, RoundedCornerShape(28.dp))
-                        .padding(12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    for (i in 0 until 8) {
-                        val eqPhoneValue =
-                            remember(phoneMediaEQ.value[i]) { mutableFloatStateOf(phoneMediaEQ.value[i]) }
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(38.dp)
-                        ) {
-                            Text(
-                                text = String.format("%.2f", eqPhoneValue.floatValue),
-                                fontSize = 12.sp,
-                                color = textColor,
-                                modifier = Modifier.padding(bottom = 4.dp)
-                            )
+                // EQ Settings. Don't seem to have an effect?
+                // Column(
+                //     modifier = Modifier
+                //         .fillMaxWidth()
+                //         .background(backgroundColor, RoundedCornerShape(28.dp))
+                //         .padding(12.dp),
+                //     horizontalAlignment = Alignment.CenterHorizontally
+                // ) {
+                //     for (i in 0 until 8) {
+                //         val eqPhoneValue =
+                //             remember(phoneMediaEQ.value[i]) { mutableFloatStateOf(phoneMediaEQ.value[i]) }
+                //         Row(
+                //             horizontalArrangement = Arrangement.SpaceBetween,
+                //             verticalAlignment = Alignment.CenterVertically,
+                //             modifier = Modifier
+                //                 .fillMaxWidth()
+                //                 .height(38.dp)
+                //         ) {
+                //             Text(
+                //                 text = String.format("%.2f", eqPhoneValue.floatValue),
+                //                 fontSize = 12.sp,
+                //                 color = textColor,
+                //                 modifier = Modifier.padding(bottom = 4.dp)
+                //             )
 
-                            Slider(
-                                value = eqPhoneValue.floatValue,
-                                onValueChange = { newVal ->
-                                    eqPhoneValue.floatValue = newVal
-                                    val newEQ = phoneMediaEQ.value.copyOf()
-                                    newEQ[i] = eqPhoneValue.floatValue
-                                    phoneMediaEQ.value = newEQ
-                                },
-                                valueRange = 0f..100f,
-                                modifier = Modifier
-                                    .fillMaxWidth(0.9f)
-                                    .height(36.dp),
-                                colors = SliderDefaults.colors(
-                                    thumbColor = thumbColor,
-                                    activeTrackColor = activeTrackColor,
-                                    inactiveTrackColor = trackColor
-                                ),
-                                thumb = {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(24.dp)
-                                            .shadow(4.dp, CircleShape)
-                                            .background(thumbColor, CircleShape)
-                                    )
-                                },
-                                track = {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(12.dp),
-                                        contentAlignment = Alignment.CenterStart
-                                    )
-                                    {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(4.dp)
-                                                .background(trackColor, RoundedCornerShape(4.dp))
-                                        )
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth(eqPhoneValue.floatValue / 100f)
-                                                .height(4.dp)
-                                                .background(activeTrackColor, RoundedCornerShape(4.dp))
-                                        )
-                                    }
-                                }
-                            )
+                //             Slider(
+                //                 value = eqPhoneValue.floatValue,
+                //                 onValueChange = { newVal ->
+                //                     eqPhoneValue.floatValue = newVal
+                //                     val newEQ = phoneMediaEQ.value.copyOf()
+                //                     newEQ[i] = eqPhoneValue.floatValue
+                //                     phoneMediaEQ.value = newEQ
+                //                 },
+                //                 valueRange = 0f..100f,
+                //                 modifier = Modifier
+                //                     .fillMaxWidth(0.9f)
+                //                     .height(36.dp),
+                //                 colors = SliderDefaults.colors(
+                //                     thumbColor = thumbColor,
+                //                     activeTrackColor = activeTrackColor,
+                //                     inactiveTrackColor = trackColor
+                //                 ),
+                //                 thumb = {
+                //                     Box(
+                //                         modifier = Modifier
+                //                             .size(24.dp)
+                //                             .shadow(4.dp, CircleShape)
+                //                             .background(thumbColor, CircleShape)
+                //                     )
+                //                 },
+                //                 track = {
+                //                     Box(
+                //                         modifier = Modifier
+                //                             .fillMaxWidth()
+                //                             .height(12.dp),
+                //                         contentAlignment = Alignment.CenterStart
+                //                     )
+                //                     {
+                //                         Box(
+                //                             modifier = Modifier
+                //                                 .fillMaxWidth()
+                //                                 .height(4.dp)
+                //                                 .background(trackColor, RoundedCornerShape(4.dp))
+                //                         )
+                //                         Box(
+                //                             modifier = Modifier
+                //                                 .fillMaxWidth(eqPhoneValue.floatValue / 100f)
+                //                                 .height(4.dp)
+                //                                 .background(activeTrackColor, RoundedCornerShape(4.dp))
+                //                         )
+                //                     }
+                //                 }
+                //             )
 
-                            Text(
-                                text = stringResource(R.string.band_label, i + 1),
-                                fontSize = 12.sp,
-                                color = textColor,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
-                        }
-                    }
-                }
+                //             Text(
+                //                 text = stringResource(R.string.band_label, i + 1),
+                //                 fontSize = 12.sp,
+                //                 color = textColor,
+                //                 modifier = Modifier.padding(top = 4.dp)
+                //             )
+                //         }
+                //     }
+                // }
             }
         }
     }

@@ -124,6 +124,7 @@ import me.kavishdevar.librepods.screens.DebugScreen
 import me.kavishdevar.librepods.screens.HeadTrackingScreen
 import me.kavishdevar.librepods.screens.HearingAidAdjustmentsScreen
 import me.kavishdevar.librepods.screens.HearingAidScreen
+import me.kavishdevar.librepods.screens.HearingProtectionScreen
 import me.kavishdevar.librepods.screens.LongPress
 import me.kavishdevar.librepods.screens.Onboarding
 import me.kavishdevar.librepods.screens.OpenSourceLicensesScreen
@@ -131,6 +132,7 @@ import me.kavishdevar.librepods.screens.RenameScreen
 import me.kavishdevar.librepods.screens.TransparencySettingsScreen
 import me.kavishdevar.librepods.screens.TroubleshootingScreen
 import me.kavishdevar.librepods.screens.UpdateHearingTestScreen
+import me.kavishdevar.librepods.screens.VersionScreen
 import me.kavishdevar.librepods.services.AirPodsService
 import me.kavishdevar.librepods.ui.theme.LibrePodsTheme
 import me.kavishdevar.librepods.utils.RadareOffsetFinder
@@ -407,6 +409,12 @@ fun Main() {
                     }
                     composable("update_hearing_test") {
                         UpdateHearingTestScreen(navController)
+                    }
+                    composable("version_info") {
+                        VersionScreen(navController)
+                    }
+                    composable("hearing_protection") {
+                        HearingProtectionScreen(navController)
                     }
                 }
             }

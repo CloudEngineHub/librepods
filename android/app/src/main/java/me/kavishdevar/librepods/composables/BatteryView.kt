@@ -135,6 +135,13 @@ fun BatteryView(service: AirPodsService, preview: Boolean = false) {
 
     val singleDisplayed = remember { mutableStateOf(false) }
 
+    val airpodsInstance = service.airpodsInstance
+    if (airpodsInstance == null) {
+        return
+    }
+    val budsRes = airpodsInstance.model.budsRes
+    val caseRes = airpodsInstance.model.caseRes
+
     Row {
         Column (
             modifier = Modifier
@@ -142,7 +149,7 @@ fun BatteryView(service: AirPodsService, preview: Boolean = false) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image (
-                bitmap = ImageBitmap.imageResource(R.drawable.pro_2_buds),
+                bitmap = ImageBitmap.imageResource(budsRes),
                 contentDescription = stringResource(R.string.buds),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -198,7 +205,7 @@ fun BatteryView(service: AirPodsService, preview: Boolean = false) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
-                bitmap = ImageBitmap.imageResource(R.drawable.pro_2_case),
+                bitmap = ImageBitmap.imageResource(caseRes),
                 contentDescription = stringResource(R.string.case_alt),
                 modifier = Modifier
                     .fillMaxWidth()

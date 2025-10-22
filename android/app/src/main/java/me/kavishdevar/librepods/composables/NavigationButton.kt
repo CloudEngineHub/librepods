@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import me.kavishdevar.librepods.R
@@ -59,7 +60,8 @@ fun NavigationButton(
     independent: Boolean = true,
     title: String? = null,
     description: String? = null,
-    currentState: String? = null
+    currentState: String? = null,
+    height: Dp = 58.dp,
 ) {
     val isDarkTheme = isSystemInDarkTheme()
     var backgroundColor by remember { mutableStateOf(if (isDarkTheme) Color(0xFF1C1C1E) else Color(0xFFFFFFFF)) }
@@ -84,7 +86,7 @@ fun NavigationButton(
         Row(
             modifier = Modifier
                 .background(animatedBackgroundColor, RoundedCornerShape(if (independent) 28.dp else 0.dp))
-                .height(58.dp)
+                .height(height)
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onPress = {
