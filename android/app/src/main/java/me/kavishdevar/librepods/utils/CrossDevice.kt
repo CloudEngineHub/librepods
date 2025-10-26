@@ -200,7 +200,7 @@ object CrossDevice {
                 notifyAirPodsDisconnectedRemotely(ServiceManager.getService()?.applicationContext!!)
                 break
             } else if (packet.contentEquals(CrossDevicePackets.REQUEST_DISCONNECT.packet) || packet.contentEquals(CrossDevicePackets.REQUEST_DISCONNECT.packet + CrossDevicePackets.AIRPODS_DATA_HEADER.packet)) {
-                ServiceManager.getService()?.disconnect()
+                ServiceManager.getService()?.disconnectForCD()
                 disconnectionRequested = true
                 CoroutineScope(Dispatchers.IO).launch {
                     delay(1000)

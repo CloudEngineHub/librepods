@@ -54,9 +54,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.materials.ExperimentalHazeMaterialsApi
-import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -97,7 +97,7 @@ fun HearingAidScreen(navController: NavController) {
         mutableStateOf((aidStatus?.value?.getOrNull(1) == 0x01.toByte()) && (assistStatus?.value?.getOrNull(0) == 0x01.toByte()))
     }
 
-    var hazeStateS = rememberHazeState()
+    val hazeStateS = remember { mutableStateOf(HazeState()) } // dont question this. i could possibly use something other than initializing it with an empty state and then replacing it with the the one provided by the scaffold
 
     StyledScaffold(
         title = stringResource(R.string.hearing_aid),
@@ -112,7 +112,7 @@ fun HearingAidScreen(navController: NavController) {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            hazeStateS = hazeState
+            hazeStateS.value = hazeState
             Spacer(modifier = Modifier.height(spacerHeight))
 
             val hearingAidListener = remember {
@@ -288,7 +288,7 @@ fun HearingAidScreen(navController: NavController) {
                 }
             }
         },
-        hazeState = hazeStateS,
+        hazeState = hazeStateS.value,
         // backdrop = backdrop
     )
 }

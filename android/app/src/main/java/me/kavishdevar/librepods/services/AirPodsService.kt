@@ -88,9 +88,9 @@ import me.kavishdevar.librepods.constants.StemAction
 import me.kavishdevar.librepods.constants.isHeadTrackingData
 import me.kavishdevar.librepods.utils.AACPManager
 import me.kavishdevar.librepods.utils.AACPManager.Companion.StemPressType
+import me.kavishdevar.librepods.utils.ATTManager
 import me.kavishdevar.librepods.utils.AirPodsInstance
 import me.kavishdevar.librepods.utils.AirPodsModels
-import me.kavishdevar.librepods.utils.ATTManager
 import me.kavishdevar.librepods.utils.BLEManager
 import me.kavishdevar.librepods.utils.BluetoothConnectionManager
 import me.kavishdevar.librepods.utils.CrossDevice
@@ -229,6 +229,9 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     private var handleIncomingCallOnceConnected = false
 
     lateinit var bleManager: BLEManager
+
+    private lateinit var socket: BluetoothSocket
+
     private val bleStatusListener = object : BLEManager.AirPodsStatusListener {
         @SuppressLint("NewApi")
         override fun onDeviceStatusChanged(
@@ -973,7 +976,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 config.airpodsVersion3 = deviceInformation.version3
                 config.airpodsHardwareRevision = deviceInformation.hardwareRevision
                 config.airpodsUpdaterIdentifier = deviceInformation.updaterIdentifier
-                
+
                 val model = AirPodsModels.getModelByModelNumber(config.airpodsModelNumber)
                 if (model != null) {
                     airpodsInstance = AirPodsInstance(
@@ -1032,8 +1035,9 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                         byteArrayOf(0x00)
                     )
                     // this also means that the other device has start playing the audio, and if that's true, we can again start listening for audio config changes
-                    Log.d(TAG, "Another device started playing audio, listening for audio config changes again")
-                    MediaController.pausedForOtherDevice = false
+//                    Log.d(TAG, "Another device started playing audio, listening for audio config changes again")
+//                    MediaController.pausedForOtherDevice = false
+// future me: what the heck is this? this just means it will not be taking over again if audio source doesn't change???
                 }
             }
 
@@ -1842,7 +1846,6 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             notificationManager.notify(1, updatedNotification)
             notificationManager.cancel(2)
         } else if (!config.bleOnlyMode && !socket.isConnected && isConnectedLocally) {
-            Log.d(TAG, "<LogCollector:Complete:Failed> Socket not connected")
             showSocketConnectionFailureNotification("Socket created, but not connected. Is the Bluetooth process hooked?")
         }
     }
@@ -2135,10 +2138,10 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             val name = context?.getSharedPreferences("settings", MODE_PRIVATE)
                 ?.getString("name", bluetoothDevice?.name)
             if (bluetoothDevice != null && action != null && !action.isEmpty()) {
-                Log.d(TAG, "Received bluetooth connection broadcast")
+                Log.d(TAG, "Received bluetooth connection broadcast: action=$action")
                 if (ServiceManager.getService()?.isConnectedLocally == true) {
-                    Log.d(TAG, "Device is already connected locally, ignoring broadcast")
-                    ServiceManager.getService()?.manuallyCheckForAudioSource()
+                    Log.d(TAG, "Device is already connected locally, checking if we should keep audio connected")
+                    if (ServiceManager.getService()?.socket?.isConnected == true) ServiceManager.getService()?.manuallyCheckForAudioSource() else Log.d(TAG, "We're not connected, ignoring")
                     return
                 }
                 if (BluetoothDevice.ACTION_ACL_CONNECTED == action) {
@@ -2175,14 +2178,14 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         return START_STICKY
     }
 
-    private lateinit var socket: BluetoothSocket
-
     fun manuallyCheckForAudioSource() {
-        val shouldResume = MediaController.getMusicActive()
-        if ((earDetectionNotification.status[0] != 0.toByte() && earDetectionNotification.status[1] != 0.toByte()) || disconnectedBecauseReversed || otherDeviceTookOver) {
+        val shouldResume = MediaController.getMusicActive() // todo: for some reason we lose this info after disconnecting, probably android dispatches some event. haven't investigated yet.
+	if (airpodsInstance == null) return
+        Log.d(TAG, "disconnectedBecauseReversed: $disconnectedBecauseReversed, otherDeviceTookOver: $otherDeviceTookOver")
+	if ((earDetectionNotification.status[0] != 0.toByte() && earDetectionNotification.status[1] != 0.toByte()) || disconnectedBecauseReversed || otherDeviceTookOver) {
             Log.d(
                 TAG,
-                "For some reason, Android connected to the audio profile itself even after disconnecting. Disconnecting audio profile again!"
+                "For some reason, Android connected to the audio profile itself even after disconnecting. Disconnecting audio profile again! I will resume: $shouldResume"
             )
             disconnectAudio(this, device, shouldResume = shouldResume)
         }
@@ -2378,7 +2381,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
     }
 
     @SuppressLint("MissingPermission", "UnspecifiedRegisterReceiverFlag")
-    fun connectToSocket(device: BluetoothDevice) {
+    fun connectToSocket(device: BluetoothDevice, manual: Boolean = false) {
         Log.d(TAG, "<LogCollector:Start> Connecting to socket")
         HiddenApiBypass.addHiddenApiExemptions("Landroid/bluetooth/BluetoothSocket;")
         val uuid: ParcelUuid = ParcelUuid.fromString("74ec2172-0bad-4d01-8f77-997b2be0722a")
@@ -2387,7 +2390,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                 createBluetoothSocket(device, uuid)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to create BluetoothSocket: ${e.message}")
-                showSocketConnectionFailureNotification("Failed to create Bluetooth socket: ${e.message}")
+                showSocketConnectionFailureNotification("Failed to create Bluetooth socket: ${e.localizedMessage}")
                 return
             }
 
@@ -2431,15 +2434,29 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
                             )
                             Log.d(TAG, "<LogCollector:Complete:Success> Socket connected")
                         } catch (e: Exception) {
-                            Log.d(TAG, "<LogCollector:Complete:Failed> Socket not connected")
-                            showSocketConnectionFailureNotification("Socket created, but not connected. Is the Bluetooth process hooked?")
-                            throw e
+                            Log.d(TAG, "<LogCollector:Complete:Failed> Socket not connected, ${e.message}")
+                            if (manual) {
+                                sendToast(
+                                    "Couldn't connect to socket: ${e.localizedMessage}"
+                                )
+                            } else {
+                                showSocketConnectionFailureNotification("Couldn't connect to socket: ${e.localizedMessage}")
+                            }
+                            return@withTimeout
+//                            throw e // lol how did i not catch this before... gonna comment this line instead of removing to preserve history
                         }
                     }
-                    if (!socket.isConnected) {
-                        Log.d(TAG, "<LogCollector:Complete:Failed> Socket not connected")
-                        showSocketConnectionFailureNotification("Socket created, but not connected. Is the Bluetooth process hooked?")
+                }
+                if (!socket.isConnected) {
+                    Log.d(TAG, "<LogCollector:Complete:Failed> Socket not connected")
+                    if (manual) {
+                        sendToast(
+                            "Couldn't connect to socket: timeout."
+                        )
+                    } else {
+                        showSocketConnectionFailureNotification("Couldn't connect to socket: Timeout")
                     }
+                    return
                 }
                 this@AirPodsService.device = device
                 socket.let {
@@ -2519,7 +2536,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             } catch (e: Exception) {
                 e.printStackTrace()
                 Log.d(TAG, "Failed to connect to socket: ${e.message}")
-                showSocketConnectionFailureNotification("Failed to establish connection: ${e.message}")
+                showSocketConnectionFailureNotification("Failed to establish connection: ${e.localizedMessage}")
                 isConnectedLocally = false
                 this@AirPodsService.device = device
                 updateNotificationContent(false)
@@ -2527,7 +2544,7 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         }
     }
 
-    fun disconnect() {
+    fun disconnectForCD() {
         if (!this::socket.isInitialized) return
         socket.close()
         MediaController.pausedWhileTakingOver = false
@@ -2550,6 +2567,33 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
         }, BluetoothProfile.A2DP)
         isConnectedLocally = false
         CrossDevice.isAvailable = true
+    }
+
+    fun disconnectAirPods() {
+        if (!this::socket.isInitialized) return
+        socket.close()
+        isConnectedLocally = false
+        aacpManager.disconnected()
+        attManager?.disconnect()
+        updateNotificationContent(false)
+        sendBroadcast(Intent(AirPodsNotifications.AIRPODS_DISCONNECTED))
+
+        val bluetoothAdapter = getSystemService(BluetoothManager::class.java).adapter
+        bluetoothAdapter.getProfileProxy(this, object : BluetoothProfile.ServiceListener {
+            override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
+                if (profile == BluetoothProfile.A2DP) {
+                    val connectedDevices = proxy.connectedDevices
+                    if (connectedDevices.isNotEmpty()) {
+                        MediaController.sendPause()
+                    }
+                }
+                bluetoothAdapter.closeProfileProxy(profile, proxy)
+            }
+
+            override fun onServiceDisconnected(profile: Int) {}
+        }, BluetoothProfile.A2DP)
+        Log.d(TAG, "Disconnected AirPods upon user request")
+
     }
 
     val earDetectionNotification = AirPodsNotifications.EarDetection()
@@ -2748,6 +2792,19 @@ class AirPodsService : Service(), SharedPreferences.OnSharedPreferenceChangeList
             aacpManager.sendStopHeadTracking()
         }
         isHeadTrackingActive = false
+    }
+
+    @SuppressLint("MissingPermission")
+    fun reconnectFromSavedMac(){
+        val bluetoothAdapter = getSystemService(BluetoothManager::class.java).adapter
+        device = bluetoothAdapter.bondedDevices.find {
+            it.address == macAddress
+        }
+        if (device != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                connectToSocket(device!!, manual = true)
+            }
+        }
     }
 
 }

@@ -67,7 +67,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.kyant.backdrop.backdrops.layerBackdrop
 import com.kyant.backdrop.backdrops.rememberLayerBackdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.highlight.Highlight
@@ -231,7 +230,7 @@ fun AirPodsSettingsScreen(dev: BluetoothDevice?, service: AirPodsService,
             val instance = service.airpodsInstance
             if (instance == null) {
                 Text("Error: AirPods instance is null")
-                return@StyledScaffold   
+                return@StyledScaffold
             }
             val capabilities = instance.model.capabilities
             LazyColumn(
@@ -267,7 +266,7 @@ fun AirPodsSettingsScreen(dev: BluetoothDevice?, service: AirPodsService,
                     item(key = "spacer_noise") { Spacer(modifier = Modifier.height(16.dp)) }
                     item(key = "noise_control") { NoiseControlSettings(service = service) }
                 }
-                
+
                 if (capabilities.contains(Capability.STEM_CONFIG)) {
                     item(key = "spacer_press_hold") { Spacer(modifier = Modifier.height(16.dp)) }
                     item(key = "press_hold") { PressAndHoldSettings(navController = navController) }
@@ -370,7 +369,9 @@ fun AirPodsSettingsScreen(dev: BluetoothDevice?, service: AirPodsService,
                 Spacer(Modifier.height(32.dp))
                 StyledButton(
                     onClick = { navController.navigate("troubleshooting") },
-                    backdrop = backdrop
+                    backdrop = backdrop,
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
                 ) {
                     Text(
                         text = "Troubleshoot Connection",
@@ -378,7 +379,26 @@ fun AirPodsSettingsScreen(dev: BluetoothDevice?, service: AirPodsService,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
                             fontFamily = FontFamily(Font(R.font.sf_pro)),
-			    color = if (isSystemInDarkTheme()) Color.White else Color.Black
+                            color = if (isSystemInDarkTheme()) Color.White else Color.Black
+                        )
+                    )
+                }
+                Spacer(Modifier.height(16.dp))
+                StyledButton(
+                    onClick = {
+                        service.reconnectFromSavedMac()
+                    },
+                    backdrop = backdrop,
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                ) {
+                    Text(
+                        text = stringResource(R.string.reconnect_to_last_device),
+                        style = TextStyle(
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            fontFamily = FontFamily(Font(R.font.sf_pro)),
+                            color = if (isSystemInDarkTheme()) Color.White else Color.Black
                         )
                     )
                 }

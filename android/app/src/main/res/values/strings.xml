@@ -204,4 +204,6 @@
     <string name="ppe">EN 352 Protection</string>
     <string name="workspace_use_description">EN 352 Protection limits the maximum level of media to 82 dBA, and meets applicable EN 352 Standard requirements for personal hearing protection.</string>
     <string name="environmental_noise">Environmental Noise</string>
+    <string name="reconnect_to_last_device">Reconnect to last connected device</string>
+    <string name="disconnect">Disconnect</string>
 </resources>
