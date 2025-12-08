@@ -11,15 +11,17 @@ import signal
 import struct
 import sys
 import threading
+import platform
 from queue import Queue
 from typing import Any, Callable, Dict, List, Optional
 
+from PyQt5.QtGui import QDoubleValidator
 from colorama import Fore, Style, init as colorama_init
 colorama_init(autoreset=True)
 
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QLabel, QSlider,
-    QCheckBox, QPushButton, QLineEdit, QGridLayout
+    QCheckBox, QPushButton, QLineEdit, QGridLayout, QComboBox
 )
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject
 
@@ -70,6 +72,44 @@ class ControlCommandId:
     HEARING_AID = 0x2C
     HPS_GAIN_SWIPE = 0x2F
     HEARING_ASSIST_CONFIG = 0x33
+    LISTENING_MODE = 0x0D
+    OWNS_CONNECTION = 0x06
+
+
+class BluezChannel:
+    def __init__(self, socket, loop):
+        self.socket = socket
+        self.loop = loop
+        self.sink = None
+        self._running = True
+        self._thread = threading.Thread(target=self._read_loop, daemon=True)
+        self._thread.start()
+
+    def send_pdu(self, pdu):
+        try:
+            logger.debug(f"Sending PDU: {pdu.hex() if pdu else 'None'}")
+            self.socket.send(pdu)
+        except OSError as e:
+            logger.error(f"Socket send error: {e}")
+
+    def _read_loop(self):
+        while self._running:
+            try:
+                data = self.socket.recv(2048)
+                logger.debug(f"Received PDU: {data.hex() if data else 'None'}")
+                if not data:
+                    break
+                if self.sink:
+                    self.loop.call_soon_threadsafe(self.sink, data)
+            except OSError:
+                break
+
+    def stop(self):
+        self._running = False
+        try:
+            self.socket.close()
+        except:
+            pass
 
 
 def _make_reader(ch):
@@ -321,7 +361,7 @@ class ATTManager:
             )
             return response[1:]  # Skip opcode
         except Exception:
-            raise Exception("No response received")
+            raise Exception("No response received") from None
 
     async def listen_notifications(self) -> None:
         logger.info("ATT notification listener started")
@@ -359,6 +399,7 @@ class SignalEmitter(QObject):
     update_hearing_aid_toggle = pyqtSignal(bool)
     update_swipe_toggle = pyqtSignal(bool)
     update_loud_sound_reduction_toggle = pyqtSignal(bool)
+    update_listening_mode = pyqtSignal(int)
     connected = pyqtSignal()
 
 
@@ -374,6 +415,7 @@ class HearingAidApp(QWidget):
         self.emitter.update_hearing_aid_toggle.connect(self._set_hearing_aid_toggle)
         self.emitter.update_swipe_toggle.connect(self._set_swipe_toggle)
         self.emitter.update_loud_sound_reduction_toggle.connect(self._set_loud_sound_reduction_toggle)
+        self.emitter.update_listening_mode.connect(self._set_listening_mode)
         self.emitter.connected.connect(self.on_connected)
         self.debounce_timer = QTimer()
         self.debounce_timer.setSingleShot(True)
@@ -384,6 +426,21 @@ class HearingAidApp(QWidget):
         self.setWindowTitle("LibrePods - Hearing Aid")
         layout = QVBoxLayout()
 
+        # Status label
+        self.status_label = QLabel("Connecting...")
+        layout.addWidget(self.status_label, alignment=Qt.AlignCenter)
+
+        # Listening Mode combo box
+        self.listening_mode_combo = QComboBox()
+        self.listening_mode_combo.addItems(["Off", "Noise Cancellation", "Transparency", "Adaptive"])
+        self.listening_mode_combo.currentIndexChanged.connect(self.on_listening_mode_changed)
+        layout.addWidget(QLabel("Listening Mode"))
+        layout.addWidget(self.listening_mode_combo)
+
+        layout.addWidget(QLabel("Switch to Transparency mode for Hearing Aid to work."))
+
+        layout.addSpacing(20)
+
         self.loud_sound_reduction_checkbox = QCheckBox("Loud Sound Reduction")
         self.loud_sound_reduction_checkbox.stateChanged.connect(self.on_loud_sound_reduction_toggle)
         layout.addWidget(self.loud_sound_reduction_checkbox)
@@ -392,6 +449,8 @@ class HearingAidApp(QWidget):
         self.hearing_aid_checkbox.stateChanged.connect(self.on_hearing_aid_toggle)
         layout.addWidget(self.hearing_aid_checkbox)
 
+        layout.addSpacing(20)
+
         # EQ Inputs
         eq_layout = QGridLayout()
         self.left_eq_inputs: List[QLineEdit] = []
@@ -399,13 +458,17 @@ class HearingAidApp(QWidget):
 
         eq_labels = ["250Hz", "500Hz", "1kHz", "2kHz", "3kHz", "4kHz", "6kHz", "8kHz"]
         eq_layout.addWidget(QLabel("Frequency"), 0, 0)
-        eq_layout.addWidget(QLabel("Left"), 0, 1)
-        eq_layout.addWidget(QLabel("Right"), 0, 2)
+        eq_layout.addWidget(QLabel("Left"), 0, 1, alignment=Qt.AlignCenter)
+        eq_layout.addWidget(QLabel("Right"), 0, 2, alignment=Qt.AlignCenter)
+
+        validator = QDoubleValidator(0.0, 100.0, 6)
 
         for i, label in enumerate(eq_labels):
             eq_layout.addWidget(QLabel(label), i + 1, 0)
             left_input = QLineEdit()
             right_input = QLineEdit()
+            left_input.setValidator(validator)
+            right_input.setValidator(validator)
             left_input.setPlaceholderText("Left")
             right_input.setPlaceholderText("Right")
             self.left_eq_inputs.append(left_input)
@@ -454,17 +517,15 @@ class HearingAidApp(QWidget):
         self.conv_checkbox = QCheckBox("Conversation Boost")
         layout.addWidget(self.conv_checkbox)
 
-        # Own Voice (hidden)
+        # Own Voice Amplification
         self.own_voice_slider = QSlider(Qt.Horizontal)
         self.own_voice_slider.setRange(0, 100)
         self.own_voice_slider.setValue(50)
-
-        # Status label
-        self.status_label = QLabel("Connecting...")
-        layout.addWidget(self.status_label)
+        layout.addWidget(QLabel("Own Voice Amplification"))
+        layout.addWidget(self.own_voice_slider)
 
         # Reset button
-        self.reset_button = QPushButton("Reset")
+        self.reset_button = QPushButton("Reset adjustments")
         layout.addWidget(self.reset_button)
 
         # Connect signals for ATT settings
@@ -486,6 +547,7 @@ class HearingAidApp(QWidget):
         self.att_manager.register_listener(ATT_HANDLES['LOUD_SOUND_REDUCTION'], self.on_loud_sound_reduction_notification)
         self.aacp_manager.register_control_cmd_listener(ControlCommandId.HEARING_AID, self._on_hearing_aid_cmd)
         self.aacp_manager.register_control_cmd_listener(ControlCommandId.HPS_GAIN_SWIPE, self._on_swipe_cmd)
+        self.aacp_manager.register_control_cmd_listener(ControlCommandId.LISTENING_MODE, self._on_listening_mode_cmd)
         asyncio.run_coroutine_threadsafe(self._initial_setup(), self.loop)
 
     def on_loud_sound_reduction_notification(self, value: bytes) -> None:
@@ -513,6 +575,11 @@ class HearingAidApp(QWidget):
         enabled = value[0] == 0x01 if value else False
         self.emitter.update_swipe_toggle.emit(enabled)
 
+    def _on_listening_mode_cmd(self, value: bytes):
+        mode_value = value[0] if value else 0x01
+        index = mode_value - 1 if 1 <= mode_value <= 4 else 0
+        self.emitter.update_listening_mode.emit(index)
+
     def _set_hearing_aid_toggle(self, enabled: bool):
         self.hearing_aid_checkbox.blockSignals(True)
         self.hearing_aid_checkbox.setChecked(enabled)
@@ -523,6 +590,11 @@ class HearingAidApp(QWidget):
         self.swipe_checkbox.setChecked(enabled)
         self.swipe_checkbox.blockSignals(False)
 
+    def _set_listening_mode(self, index: int):
+        self.listening_mode_combo.blockSignals(True)
+        self.listening_mode_combo.setCurrentIndex(index)
+        self.listening_mode_combo.blockSignals(False)
+
     def on_hearing_aid_toggle(self, state: int):
         enabled = state == Qt.Checked
         asyncio.run_coroutine_threadsafe(self._send_hearing_aid_toggle(enabled), self.loop)
@@ -530,6 +602,10 @@ class HearingAidApp(QWidget):
     def on_swipe_toggle(self, state: int):
         enabled = state == Qt.Checked
         asyncio.run_coroutine_threadsafe(self._send_swipe_toggle(enabled), self.loop)
+
+    def on_listening_mode_changed(self, index: int):
+        value = index + 1
+        asyncio.run_coroutine_threadsafe(self._send_listening_mode(value), self.loop)
 
     async def _send_hearing_aid_toggle(self, enabled: bool):
         if enabled:
@@ -542,6 +618,9 @@ class HearingAidApp(QWidget):
     async def _send_swipe_toggle(self, enabled: bool):
         value = bytes([0x01]) if enabled else bytes([0x02])
         await self.aacp_manager.send_control_command(ControlCommandId.HPS_GAIN_SWIPE, value)
+
+    async def _send_listening_mode(self, value: int):
+        await self.aacp_manager.send_control_command(ControlCommandId.LISTENING_MODE, bytes([value]))
 
     async def _initial_setup(self):
         try:
@@ -630,6 +709,8 @@ class HearingAidApp(QWidget):
             logger.error("Read data too short for sending settings")
             return
         buffer = bytearray(data)
+        # buffer[0] = 0x02
+        # buffer[1] = 0x02
         buffer[2] = 0x64
 
         for i in range(8):
@@ -666,8 +747,100 @@ class HearingAidApp(QWidget):
         event.accept()
 
 
+# Make sure shutdown event is created earlier
+SHUTDOWN_EVENT = threading.Event()
+
+# Add a global shutdown event to signal the async loop to exit cleanly
+async def run_bluez(bdaddr: str, att_manager: ATTManager, aacp_manager: AACPManager,
+                     app_window: HearingAidApp, shutdown_event: threading.Event = SHUTDOWN_EVENT):
+    try:
+        import bluetooth
+    except ImportError:
+        logger.error("PyBluez (bluetooth) not installed. Install it or use --bumble.")
+        return 1
+
+    logger.info(f"Connecting to {bdaddr} using bluez sockets...")
+
+    att_channel = None
+    aacp_channel = None
+    att_listen_task = None
+    aacp_listen_task = None
+    try:
+        # ATT
+        att_sock = bluetooth.BluetoothSocket(bluetooth.L2CAP)
+        att_sock.connect((bdaddr, 31))
+        logger.info("Connected to ATT (PSM 31)")
+
+        # AACP
+        aacp_sock = bluetooth.BluetoothSocket(bluetooth.L2CAP)
+        aacp_sock.connect((bdaddr, 4097))
+        logger.info("Connected to AACP (PSM 4097)")
+
+        loop = asyncio.get_running_loop()
+
+        att_channel = BluezChannel(att_sock, loop)
+        att_manager.set_channel(att_channel)
+
+        aacp_channel = BluezChannel(aacp_sock, loop)
+        aacp_manager.set_channel(aacp_channel)
+
+        # AACP Setup
+        await aacp_manager.send_handshake()
+        await asyncio.sleep(0.1)
+        await aacp_manager.send_notification_request()
+        await asyncio.sleep(0.1)
+        await aacp_manager.send_set_feature_flags()
+        await asyncio.sleep(0.1)
+        await aacp_manager.send_control_command(ControlCommandId.OWNS_CONNECTION, bytes([0x01]))
+
+        app_window.emitter.connected.emit()
+
+        att_listen_task = asyncio.create_task(att_manager.listen_notifications())
+        aacp_listen_task = asyncio.create_task(aacp_manager.listen())
+
+        logger.info("BlueZ connection established. UI is now active.")
+
+        try:
+            await loop.run_in_executor(None, shutdown_event.wait)
+        except asyncio.CancelledError:
+            pass
+    except Exception as e:
+        logger.error(f"BlueZ connection failed: {e}")
+        return 1
+    finally:
+        # Ensure we attempt a clean shutdown
+        if att_listen_task:
+            att_listen_task.cancel()
+            try:
+                await att_listen_task
+            except asyncio.CancelledError:
+                pass
+            except Exception:
+                pass
+        if aacp_listen_task:
+            aacp_listen_task.cancel()
+            try:
+                await aacp_listen_task
+            except asyncio.CancelledError:
+                pass
+            except Exception:
+                pass
+        if att_channel:
+            try:
+                att_channel.stop()
+            except Exception:
+                pass
+        if aacp_channel:
+            try:
+                aacp_channel.stop()
+            except Exception:
+                pass
+
+    return 0
+
+
 async def run_bumble(bdaddr: str, att_manager: ATTManager, aacp_manager: AACPManager,
-                     app_window: HearingAidApp):
+                     app_window: HearingAidApp, shutdown_event: threading.Event = SHUTDOWN_EVENT):
     try:
         from bumble.l2cap import ClassicChannelSpec, ClassicChannel
         from bumble.transport import open_transport
@@ -682,97 +855,103 @@ async def run_bumble(bdaddr: str, att_manager: ATTManager, aacp_manager: AACPMan
         logger.error("Bumble not installed")
         return 1
 
-    async def get_device():
-        logger.info("Opening transport...")
-        transport = await open_transport("usb:0")
-        device = Device(host=Host(controller_source=transport.source, controller_sink=transport.sink))
-        device.classic_enabled = True
-        device.le_enabled = False
-        device.keystore = JsonKeyStore.from_device(device, "./keys.json")
-        device.pairing_config_factory = lambda conn: PairingConfig(
-            sc=True, mitm=False, bonding=True,
-            delegate=PairingDelegate(io_capability=PairingDelegate.NO_OUTPUT_NO_INPUT)
-        )
-        await device.power_on()
-        logger.info("Device powered on")
+    transport = None
+    device = None
+    connection = None
+    att_listen_task = None
+    aacp_listen_task = None
 
-        def on_l2cap_connection(channel: ClassicChannel):
-            logger.info("Incoming L2CAP connection on PSM %d", channel.psm)
-            async def handle_data():
-                try:
-                    reader = _make_reader(channel)
-                    while True:
-                        data = await reader()
-                        print(f"Received PDU on PSM {channel.psm}: {data.hex() if data else 'None'}")
-                except Exception as e:
-                    logger.info("L2CAP channel on PSM %d closed: %s", channel.psm, e)
-            asyncio.create_task(handle_data())
-
-        att_server_spec = ClassicChannelSpec(psm=31, mtu=512)
-        device.create_l2cap_server(att_server_spec, handler=on_l2cap_connection)
-        logger.info("L2CAP server registered on PSM 0x%04X", att_server_spec.psm)
-
-        device.sdp_service_records =  {
-                0x4f491200: [
-                    ServiceAttribute(0x0000, DataElement.unsigned_integer_32(0x4f491200)),
-                    ServiceAttribute(0x0001, DataElement.sequence([DataElement.uuid(UUID.from_16_bits(0x1200))])),
-                    ServiceAttribute(0x0002, DataElement.unsigned_integer_32(0x00000000)),
-                    ServiceAttribute(0x0005, DataElement.sequence([DataElement.uuid(UUID.from_16_bits(0x1002))])),
-                    ServiceAttribute(0x0006, DataElement.sequence([
-                        DataElement.unsigned_integer_16(0x656e), DataElement.unsigned_integer_16(0x006a), DataElement.unsigned_integer_16(0x0100),
-                        DataElement.unsigned_integer_16(0x6672), DataElement.unsigned_integer_16(0x006a), DataElement.unsigned_integer_16(0x0110),
-                        DataElement.unsigned_integer_16(0x6465), DataElement.unsigned_integer_16(0x006a), DataElement.unsigned_integer_16(0x0120),
-                        DataElement.unsigned_integer_16(0x6a61), DataElement.unsigned_integer_16(0x006a), DataElement.unsigned_integer_16(0x0130)
-                    ])),
-                    ServiceAttribute(0x0008, DataElement.unsigned_integer_8(0xff)),
-                    ServiceAttribute(0x0101, DataElement.text_string('PnP Information')),
-                    ServiceAttribute(0x0200, DataElement.unsigned_integer_16(0x0102)),
-                    ServiceAttribute(0x0201, DataElement.unsigned_integer_16(0x004c)),
-                    ServiceAttribute(0x0202, DataElement.unsigned_integer_16(0x0000)),
-                    ServiceAttribute(0x0203, DataElement.unsigned_integer_16(0x0f60)),
-                    ServiceAttribute(0x0204, DataElement.boolean(True)),
-                    ServiceAttribute(0x0205, DataElement.unsigned_integer_16(0x0001)),
-                    ServiceAttribute(0xa000, DataElement.unsigned_integer_32(0x00a026c4)),
-                    ServiceAttribute(0xafff, DataElement.unsigned_integer_16(0x0001))
-                ]
-            }
-
-        logger.info("SDP service records set up")
-
-        return transport, device
-
-    async def setup_aacp(conn: Connection):
-        spec = ClassicChannelSpec(psm=4097, mtu=2048)
-        logger.info("Requesting AACP channel on PSM = 0x%04X", spec.psm)
-        if not conn.is_encrypted:
-            await conn.encrypt()
-            await asyncio.sleep(0.05)
-        channel: ClassicChannel = await conn.create_l2cap_channel(spec=spec)
-        aacp_manager.set_channel(channel)
-        logger.info("AACP channel established")
-
-        await aacp_manager.send_handshake()
-        await asyncio.sleep(0.1)
-        await aacp_manager.send_notification_request()
-        await asyncio.sleep(0.1)
-        await aacp_manager.send_set_feature_flags()
-
-        return channel
-
-    async def setup_att(conn: Connection):
-        spec = ClassicChannelSpec(psm=31, mtu=512)
-        logger.info("Requesting ATT channel on PSM = 0x%04X", spec.psm)
-        if not conn.is_encrypted:
-            await conn.encrypt()
-            await asyncio.sleep(0.05)
-        channel: ClassicChannel = await conn.create_l2cap_channel(spec=spec)
-        att_manager.set_channel(channel)
-        logger.info("ATT channel established")
-        return channel
-
-    transport, device = await get_device()
-    logger.info("Connecting to %s (BR/EDR)...", bdaddr)
     try:
+        async def get_device():
+            logger.info("Opening transport...")
+            transport = await open_transport("usb:0")
+            device = Device(host=Host(controller_source=transport.source, controller_sink=transport.sink))
+            device.classic_enabled = True
+            device.le_enabled = False
+            device.keystore = JsonKeyStore.from_device(device, "./keys.json")
+            device.pairing_config_factory = lambda conn: PairingConfig(
+                sc=True, mitm=False, bonding=True,
+                delegate=PairingDelegate(io_capability=PairingDelegate.NO_OUTPUT_NO_INPUT)
+            )
+            await device.power_on()
+            logger.info("Device powered on")
+
+            def on_l2cap_connection(channel: ClassicChannel):
+                logger.info("Incoming L2CAP connection on PSM %d", channel.psm)
+                async def handle_data():
+                    try:
+                        reader = _make_reader(channel)
+                        while True:
+                            data = await reader()
+                            print(f"Received PDU on PSM {channel.psm}: {data.hex() if data else 'None'}")
+                    except Exception as e:
+                        logger.info("L2CAP channel on PSM %d closed: %s", channel.psm, e)
+                asyncio.create_task(handle_data())
+
+            att_server_spec = ClassicChannelSpec(psm=31, mtu=512)
+            device.create_l2cap_server(att_server_spec, handler=on_l2cap_connection)
+            logger.info("L2CAP server registered on PSM 0x%04X", att_server_spec.psm)
+
+            device.sdp_service_records =  {
+                    0x4f491200: [
+                        ServiceAttribute(0x0000, DataElement.unsigned_integer_32(0x4f491200)),
+                        ServiceAttribute(0x0001, DataElement.sequence([DataElement.uuid(UUID.from_16_bits(0x1200))])),
+                        ServiceAttribute(0x0002, DataElement.unsigned_integer_32(0x00000000)),
+                        ServiceAttribute(0x0005, DataElement.sequence([DataElement.uuid(UUID.from_16_bits(0x1002))])),
+                        ServiceAttribute(0x0006, DataElement.sequence([
+                            DataElement.unsigned_integer_16(0x656e), DataElement.unsigned_integer_16(0x006a), DataElement.unsigned_integer_16(0x0100),
+                            DataElement.unsigned_integer_16(0x6672), DataElement.unsigned_integer_16(0x006a), DataElement.unsigned_integer_16(0x0110),
+                            DataElement.unsigned_integer_16(0x6465), DataElement.unsigned_integer_16(0x006a), DataElement.unsigned_integer_16(0x0120),
+                            DataElement.unsigned_integer_16(0x6a61), DataElement.unsigned_integer_16(0x006a), DataElement.unsigned_integer_16(0x0130)
+                        ])),
+                        ServiceAttribute(0x0008, DataElement.unsigned_integer_8(0xff)),
+                        ServiceAttribute(0x0101, DataElement.text_string('PnP Information')),
+                        ServiceAttribute(0x0200, DataElement.unsigned_integer_16(0x0102)),
+                        ServiceAttribute(0x0201, DataElement.unsigned_integer_16(0x004c)),
+                        ServiceAttribute(0x0202, DataElement.unsigned_integer_16(0x0000)),
+                        ServiceAttribute(0x0203, DataElement.unsigned_integer_16(0x0f60)),
+                        ServiceAttribute(0x0204, DataElement.boolean(True)),
+                        ServiceAttribute(0x0205, DataElement.unsigned_integer_16(0x0001)),
+                        ServiceAttribute(0xa000, DataElement.unsigned_integer_32(0x00a026c4)),
+                        ServiceAttribute(0xafff, DataElement.unsigned_integer_16(0x0001))
+                    ]
+                }
+
+            logger.info("SDP service records set up")
+
+            return transport, device
+
+        async def setup_aacp(conn: Connection):
+            spec = ClassicChannelSpec(psm=4097, mtu=2048)
+            logger.info("Requesting AACP channel on PSM = 0x%04X", spec.psm)
+            if not conn.is_encrypted:
+                await conn.encrypt()
+                await asyncio.sleep(0.05)
+            channel: ClassicChannel = await conn.create_l2cap_channel(spec=spec)
+            aacp_manager.set_channel(channel)
+            logger.info("AACP channel established")
+
+            await aacp_manager.send_handshake()
+            await asyncio.sleep(0.1)
+            await aacp_manager.send_notification_request()
+            await asyncio.sleep(0.1)
+            await aacp_manager.send_set_feature_flags()
+
+            return channel
+
+        async def setup_att(conn: Connection):
+            spec = ClassicChannelSpec(psm=31, mtu=512)
+            logger.info("Requesting ATT channel on PSM = 0x%04X", spec.psm)
+            if not conn.is_encrypted:
+                await conn.encrypt()
+                await asyncio.sleep(0.05)
+            channel: ClassicChannel = await conn.create_l2cap_channel(spec=spec)
+            att_manager.set_channel(channel)
+            logger.info("ATT channel established")
+            return channel
+
+        transport, device = await get_device()
+        logger.info("Connecting to %s (BR/EDR)...", bdaddr)
         connection = await device.connect(bdaddr, PhysicalTransport.BR_EDR)
         logger.info("Connected to %s (handle %s)", connection.peer_address, connection.handle)
         logger.info("Authenticating...")
@@ -791,21 +970,10 @@ async def run_bumble(bdaddr: str, att_manager: ATTManager, aacp_manager: AACPMan
 
         logger.info("Connection established. UI is now active.")
         try:
-            await asyncio.Event().wait()
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, shutdown_event.wait)
         except asyncio.CancelledError:
             pass
-        finally:
-            att_listen_task.cancel()
-            aacp_listen_task.cancel()
-            try:
-                await att_listen_task
-            except asyncio.CancelledError:
-                pass
-            try:
-                await aacp_listen_task
-            except asyncio.CancelledError:
-                pass
-
     except HCI_Error as e:
         if "PAIRING_NOT_ALLOWED_ERROR" in str(e):
             logger.error("Put your device into pairing mode and run the script again")
@@ -814,10 +982,39 @@ async def run_bumble(bdaddr: str, att_manager: ATTManager, aacp_manager: AACPMan
     except Exception as e:
         logger.error("Unexpected error: %s", e)
     finally:
-        if hasattr(transport, "close"):
+        logger.info("Shutting down bumble connection...")
+        # Cancel and await listening tasks
+        if att_listen_task:
+            att_listen_task.cancel()
+            try:
+                await att_listen_task
+            except asyncio.CancelledError:
+                pass
+            except Exception:
+                pass
+        if aacp_listen_task:
+            aacp_listen_task.cancel()
+            try:
+                await aacp_listen_task
+            except asyncio.CancelledError:
+                pass
+            except Exception:
+                pass
+
+        # Attempt to cleanly disconnect the remote device
+        if connection:
+            try:
+                await connection.disconnect()
+            except Exception:
+                pass
+
+        if transport:
             logger.info("Closing transport...")
-            await transport.close()
-        logger.info("Transport closed")
+            try:
+                await transport.close()
+            except Exception:
+                pass
+            logger.info("Transport closed")
     return 0
 
 
@@ -825,6 +1022,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("bdaddr", help="Bluetooth address of the hearing aid device")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    parser.add_argument("--bumble", action="store_true", help="Force use of Bumble stack (default on Windows)")
     args = parser.parse_args()
     logging.getLogger().setLevel(logging.DEBUG if args.debug else logging.INFO)
 
@@ -838,24 +1036,58 @@ def main():
     window.show()
 
     def quit_app(signum, frame):
-        att_manager.stop()
-        aacp_manager.stop()
+        # Signal the application shutdown to both main thread and the async thread
+        SHUTDOWN_EVENT.set()
+        try:
+            att_manager.stop()
+            aacp_manager.stop()
+        except Exception:
+            pass
         qt_app.quit()
 
     signal.signal(signal.SIGINT, quit_app)
-
+    signal.signal(signal.SIGTERM, quit_app)
+    
     def run_async():
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(run_bumble(args.bdaddr, att_manager, aacp_manager, window))
+        use_bumble = args.bumble or platform.system() == "Windows"
+        try:
+            if use_bumble:
+                loop.run_until_complete(run_bumble(args.bdaddr, att_manager, aacp_manager, window, SHUTDOWN_EVENT))
+            else:
+                import subprocess
+                ps_output = subprocess.run(["ps", "-A"], capture_output=True, text=True).stdout
+                if "librepods" in ps_output:
+                    logger.error("LibrePods is running. Please close it before using this script.")
+                    loop.call_soon_threadsafe(loop.stop)
+                    quit_app(None, None)
+                    return
+                loop.run_until_complete(
+                    run_bluez(args.bdaddr, att_manager, aacp_manager, window, SHUTDOWN_EVENT)
+                )
+        except Exception as e:
+            logger.error("Async thread error: %s", e)
+        finally:
+            loop.call_soon_threadsafe(loop.stop)
 
-    async_thread = threading.Thread(target=run_async, daemon=True)
+    # Keep the async thread non-daemon so cleanup can run
+    async_thread = threading.Thread(target=run_async, daemon=False)
     async_thread.start()
 
     timer = QTimer()
     timer.timeout.connect(lambda: None)
     timer.start(100)
 
-    sys.exit(qt_app.exec_())
+    # Run GUI and wait for async thread cleanup
+    exit_code = qt_app.exec_()
+
+    # Ensure shutdown is signaled (in case user closed the window)
+    SHUTDOWN_EVENT.set()
+
+    # Wait for async thread to finish gracefully for a short timeout
+    async_thread.join(timeout=10)
+
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":
